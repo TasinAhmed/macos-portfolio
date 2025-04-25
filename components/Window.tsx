@@ -13,20 +13,23 @@ const Button = ({
   color,
   isActive,
   onClick,
+  disabled,
 }: {
   color: "red" | "yellow" | "green";
   isActive: boolean;
-  onClick?: React.MouseEventHandler<HTMLDivElement>;
+  onClick: React.MouseEventHandler<HTMLDivElement>;
+  disabled?: boolean;
 }) => {
   return (
     <div
       onClick={(e) => {
-        console.log("click click");
-        if (onClick) onClick(e);
+        if (disabled) return;
+        onClick(e);
       }}
+      onDoubleClick={(e) => e.stopPropagation()}
       className={clsx(
         "h-[12px] w-[12px] rounded-full border-solid border-[0.5px] transition-colors ease-in-out",
-        !isActive
+        !isActive || disabled
           ? "bg-inactive-btn border-[rgba(0,0,0,0.12)]"
           : color === "red"
           ? "bg-[#FF6157] border-[#E24640]"
@@ -46,9 +49,14 @@ const Window = ({
   dragConstraints: React.RefObject<HTMLDivElement | null>;
 }) => {
   const dragControls = useDragControls();
-  const { removeWindow, activeWindow, setActiveWindow } = useAppStore(
-    (state) => state
-  );
+  const {
+    removeWindow,
+    activeWindow,
+    setActiveWindow,
+    addFullScreenWindow,
+    removeFullScreenWindow,
+    transitionDuration,
+  } = useAppStore((state) => state);
   const [isActive, setIsActive] = useState(false);
   const dataRef = useRef(data);
   const [offsetX, offsetY] = useMemo(() => {
@@ -57,6 +65,7 @@ const Window = ({
     return [rand(), rand()];
   }, []);
   const [fullScreen, setFullScreen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const height = useMotionValue(200);
   const width = useMotionValue(400);
   const x = useMotionValue(
@@ -79,42 +88,68 @@ const Window = ({
     height: height.get(),
   });
   const [enableConstraints, setEnableConstraints] = useState(true);
-  const [isClosing, setIsClosing] = useState(false);
   const [currentAnimation, setCurrentAnimation] = useState("enter");
-  const TRANSITION_DURATION = 70;
 
-  const enterFullScreen = () => {
+  const enterFullScreen = useCallback(() => {
     if (!fullScreen) {
+      addFullScreenWindow(dataRef.current.id);
       setPosition({ x: x.get(), y: y.get() });
-      animate(x, 0, { duration: TRANSITION_DURATION / 1000 });
-      animate(y, 0, { duration: TRANSITION_DURATION / 1000 });
+      animate(x, 0, { duration: transitionDuration });
+      animate(y, 0, { duration: transitionDuration });
       setCurrentAnimation("enterFullScreen");
     } else {
-      animate(x, position.x, { duration: TRANSITION_DURATION / 1000 });
-      animate(y, position.y, { duration: TRANSITION_DURATION / 1000 });
+      removeFullScreenWindow(dataRef.current.id);
+      animate(x, position.x, { duration: transitionDuration });
+      animate(y, position.y, { duration: transitionDuration });
       setCurrentAnimation("exitFullScreen");
     }
     setFullScreen(!fullScreen);
+  }, [
+    fullScreen,
+    position,
+    addFullScreenWindow,
+    removeFullScreenWindow,
+    x,
+    y,
+    transitionDuration,
+  ]);
+
+  const onAnimationComplete = (def: string) => {
+    switch (def) {
+      case "enterFullScreen":
+        setEnableConstraints(false);
+        break;
+
+      case "exitFullScreen":
+        setEnableConstraints(true);
+        break;
+
+      case "exit":
+        removeWindow(dataRef.current.id);
+        break;
+
+      default:
+        break;
+    }
   };
 
-  useEffect(() => {
-    if (isClosing) {
-      const timeout = setTimeout(() => {
-        removeWindow(data.id);
-      }, TRANSITION_DURATION);
+  const closeWindow = () => {
+    setCurrentAnimation("exit");
+    removeFullScreenWindow(dataRef.current.id);
+  };
 
-      return () => clearTimeout(timeout);
-    }
-  }, [isClosing, data.id, removeWindow]);
+  const minimizeWindow = () => {
+    setMinimized(!minimized);
+  };
 
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
 
   const setAsActive = useCallback(() => {
-    if (activeWindow === data.id) return;
+    if (activeWindow === dataRef.current.id) return;
     setActiveWindow(dataRef.current.id);
-  }, [setActiveWindow, activeWindow, data]);
+  }, [setActiveWindow, activeWindow]);
 
   useEffect(() => {
     if (activeWindow === dataRef.current.id) setIsActive(true);
@@ -140,6 +175,10 @@ const Window = ({
           width: size.width,
           height: size.height,
         },
+        exit: {
+          opacity: 0,
+          scale: 0.5,
+        },
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
@@ -160,18 +199,8 @@ const Window = ({
         height: height.get(),
       }}
       animate={currentAnimation}
-      exit={{
-        opacity: 0,
-        scale: 0.5,
-      }}
-      onAnimationComplete={(def) => {
-        if (def === "enterFullScreen") {
-          setEnableConstraints(false);
-        } else if (def === "exitFullScreen") {
-          setEnableConstraints(true);
-        }
-      }}
-      transition={{ duration: TRANSITION_DURATION / 1000 }}
+      onAnimationComplete={onAnimationComplete}
+      transition={{ duration: transitionDuration }}
       drag={!fullScreen}
       dragControls={dragControls}
       dragConstraints={enableConstraints ? dragConstraints : undefined}
@@ -180,8 +209,8 @@ const Window = ({
       dragListener={false}
       onDragEnd={() => setPosition({ x: x.get(), y: y.get() })}
       className={clsx(
-        !fullScreen && "rounded-[10px]",
-        "absolute bg-[#ffffffbe] border-solid border-[#0000001e] backdrop-blur-[40px] overflow-hidden window"
+        !fullScreen && "rounded-[10px] window",
+        "absolute bg-[#ffffffbe] border-solid border-[#0000001e] backdrop-blur-[40px] overflow-hidden"
       )}
     >
       <Resizable
@@ -191,7 +220,7 @@ const Window = ({
           ? { enable: false }
           : { minHeight, maxHeight, minWidth, maxWidth })}
         {...(isActive ? {} : { enable: false })}
-        size={fullScreen ? { width: "100%", height: "100%" } : size}
+        size={{ width: "100%", height: "100%" }}
         onResize={(e, direction, ref, delta) => {
           if (["left", "topLeft", "top"].includes(direction)) {
             x.set(position.x - delta.width);
@@ -226,14 +255,13 @@ const Window = ({
           )}
         >
           <div className="flex items-center gap-[8px]">
+            <Button isActive={isActive} onClick={closeWindow} color="red" />
             <Button
               isActive={isActive}
-              onClick={() => {
-                setIsClosing(true);
-              }}
-              color="red"
+              onClick={minimizeWindow}
+              color="yellow"
+              disabled={fullScreen}
             />
-            <Button isActive={isActive} color="yellow" />
             <Button
               onClick={enterFullScreen}
               isActive={isActive}

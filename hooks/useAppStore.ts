@@ -8,15 +8,33 @@ export type WindowType = {
 interface AppStoreType {
   windows: Map<string, WindowType>;
   activeWindow: string | null;
+  fullScreenWindows: Set<string>;
+  transitionDuration: number;
   addWindow: (key: string, value: WindowType) => void;
   removeWindow: (key: string) => void;
   setWindows: (newMap: Map<string, WindowType>) => void;
   setActiveWindow: (key: string | null) => void;
+  addFullScreenWindow: (key: string) => void;
+  removeFullScreenWindow: (key: string) => void;
 }
 
 export const useAppStore = create<AppStoreType>((set) => ({
+  transitionDuration: 0.15,
   windows: new Map(),
   activeWindow: null,
+  fullScreenWindows: new Set(),
+  addFullScreenWindow: (key) =>
+    set((state) => {
+      const newSet = new Set(state.fullScreenWindows);
+      newSet.add(key);
+      return { fullScreenWindows: newSet };
+    }),
+  removeFullScreenWindow: (key) =>
+    set((state) => {
+      const newSet = new Set(state.fullScreenWindows);
+      newSet.delete(key);
+      return { fullScreenWindows: newSet };
+    }),
   setWindows: (newMap) => set(() => ({ windows: newMap })),
   setActiveWindow: (key) => {
     set((state) => {
