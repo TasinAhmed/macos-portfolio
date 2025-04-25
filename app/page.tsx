@@ -10,6 +10,9 @@ import Image from "next/image";
 const App = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
   const { windows, setActiveWindow } = useAppStore((state) => state);
+  const refs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(
+    new Map()
+  );
 
   return (
     <div className="h-screen w-screen grid grid-rows-[auto_1fr] overflow-hidden">
@@ -31,11 +34,16 @@ const App = () => {
       >
         <AnimatePresence>
           {[...windows.values()].map((w) => (
-            <Window key={w.id} dragConstraints={constraintsRef} data={w} />
+            <Window
+              key={w.id}
+              dragConstraints={constraintsRef}
+              data={w}
+              dockIconRef={refs.current.get(w.id)!}
+            />
           ))}
         </AnimatePresence>
       </motion.div>
-      <Dock />
+      <Dock refs={refs} />
     </div>
   );
 };

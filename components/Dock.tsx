@@ -5,7 +5,7 @@ import {
   MotionValue,
   useSpring,
 } from "motion/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { RefObject, useEffect, useState } from "react";
 import { useAppStore } from "../hooks/useAppStore";
 import clsx from "clsx";
 import Image from "next/image";
@@ -21,10 +21,12 @@ const AppIcon = ({
   mouseX,
   data,
   active,
+  iconRef,
 }: {
   mouseX: MotionValue<number>;
   data: ItemType;
   active: boolean;
+  iconRef: React.RefObject<HTMLDivElement | null>;
 }) => {
   const { windows, addWindow, setActiveWindow } = useAppStore((state) => state);
 
@@ -36,11 +38,15 @@ const AppIcon = ({
 
     addWindow(item.id, { title: item.name, id: item.id });
   };
-  const ref = useRef<HTMLDivElement>(null);
+
   const distance = useTransform(mouseX, (val) => {
-    const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
+    const bounds = iconRef?.current?.getBoundingClientRect() ?? {
+      x: 0,
+      width: 0,
+    };
     return val - bounds.x - bounds.width / 2;
   });
+
   const widthSync = useTransform(distance, [-100, 0, 100], [64, 100, 64]);
   const width = useSpring(widthSync, {
     damping: 15,
@@ -50,10 +56,12 @@ const AppIcon = ({
 
   return (
     <motion.div
-      ref={ref}
+      ref={iconRef}
       style={{ width }}
       className="aspect-square flex items-center justify-center pointer-events-auto relative"
-      onClick={() => openWindow(data)}
+      onClick={() => {
+        openWindow(data);
+      }}
     >
       <Image
         src={"/" + data.src}
@@ -78,7 +86,11 @@ const AppIcon = ({
   );
 };
 
-const Dock = () => {
+const Dock = ({
+  refs,
+}: {
+  refs: RefObject<Map<string, RefObject<HTMLDivElement | null>>>;
+}) => {
   const mouseX = useMotionValue(Infinity);
   const { windows, fullScreenWindows, transitionDuration } = useAppStore(
     (state) => state
@@ -130,7 +142,6 @@ const Dock = () => {
       setCurrentAnimation("enter");
     }
     if (atBottom && isFullScreen) {
-      console.log("test");
       setCurrentAnimation("enter");
     }
   }, [isFullScreen, atBottom]);
@@ -159,6 +170,11 @@ const Dock = () => {
     >
       {items.slice(0, items.length - 2).map((item) => (
         <AppIcon
+          iconRef={
+            refs.current.get(item.id) ||
+            (refs.current.set(item.id, React.createRef()) &&
+              refs.current.get(item.id)!)
+          } // Dynamically assign ref
           active={windows.has(item.id)}
           key={item.id}
           mouseX={mouseX}
@@ -168,6 +184,11 @@ const Dock = () => {
       <div className="w-[1px] h-[50px] ml-[10px] mr-[4px] mb-[7px] bg-[rgba(0,0,0,0.3)]"></div>
       {items.slice(items.length - 2).map((item) => (
         <AppIcon
+          iconRef={
+            refs.current.get(item.id) ||
+            (refs.current.set(item.id, React.createRef()) &&
+              refs.current.get(item.id)!)
+          } // Dynamically assign ref
           active={windows.has(item.id)}
           key={item.id}
           mouseX={mouseX}

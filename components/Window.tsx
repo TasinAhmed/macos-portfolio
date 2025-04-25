@@ -44,9 +44,11 @@ const Button = ({
 const Window = ({
   data,
   dragConstraints,
+  dockIconRef,
 }: {
   data: WindowType;
   dragConstraints: React.RefObject<HTMLDivElement | null>;
+  dockIconRef: React.RefObject<HTMLDivElement | null>;
 }) => {
   const dragControls = useDragControls();
   const {
@@ -66,6 +68,7 @@ const Window = ({
   }, []);
   const [fullScreen, setFullScreen] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const minimizedRef = useRef(minimized);
   const height = useMotionValue(200);
   const width = useMotionValue(400);
   const x = useMotionValue(
@@ -128,6 +131,10 @@ const Window = ({
         removeWindow(dataRef.current.id);
         break;
 
+      case "enterMinimized":
+        setMinimized(true);
+        break;
+
       default:
         break;
     }
@@ -138,13 +145,52 @@ const Window = ({
     removeFullScreenWindow(dataRef.current.id);
   };
 
-  const minimizeWindow = () => {
-    setMinimized(!minimized);
-  };
+  const minimizeWindow = useCallback(() => {
+    const tempX = dockIconRef.current
+      ? dockIconRef.current.getBoundingClientRect().x
+      : 0;
+    const tempY = dockIconRef.current
+      ? dockIconRef.current.getBoundingClientRect().y
+      : 0;
+    const tempWidth = dockIconRef.current
+      ? dockIconRef.current.getBoundingClientRect().width
+      : 0;
+    const tempHeight = dockIconRef.current
+      ? dockIconRef.current.getBoundingClientRect().height
+      : 0;
+
+    if (!minimizedRef.current) {
+      animate(x, tempX + tempWidth / 2 - width.get() / 2, {
+        duration: transitionDuration,
+      });
+      animate(y, tempY + tempHeight / 2 - height.get() / 2, {
+        duration: transitionDuration,
+      });
+      setCurrentAnimation("enterMinimized");
+    } else {
+      animate(x, position.x, { duration: transitionDuration });
+      animate(y, position.y, { duration: transitionDuration });
+      setMinimized(false);
+      setCurrentAnimation("exitMinimized");
+    }
+  }, [dockIconRef, height, position, transitionDuration, width, x, y]);
+
+  useEffect(() => {
+    const tempRef = dockIconRef.current;
+    tempRef?.addEventListener("click", minimizeWindow);
+
+    return () => {
+      tempRef?.removeEventListener("click", minimizeWindow);
+    };
+  }, [dockIconRef, minimizeWindow]);
 
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
+
+  useEffect(() => {
+    minimizedRef.current = minimized;
+  }, [minimized]);
 
   const setAsActive = useCallback(() => {
     if (activeWindow === dataRef.current.id) return;
@@ -179,6 +225,14 @@ const Window = ({
           opacity: 0,
           scale: 0.5,
         },
+        enterMinimized: {
+          opacity: 0,
+          scale: 0.1,
+        },
+        exitMinimized: {
+          opacity: 1,
+          scale: 1,
+        },
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
@@ -210,6 +264,7 @@ const Window = ({
       onDragEnd={() => setPosition({ x: x.get(), y: y.get() })}
       className={clsx(
         !fullScreen && "rounded-[10px] window",
+        minimized && "hidden",
         "absolute bg-[#ffffffbe] border-solid border-[#0000001e] backdrop-blur-[40px] overflow-hidden"
       )}
     >
