@@ -1,13 +1,207 @@
 import clsx from "clsx";
+import { isURL } from "validator";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import { useAppStore, WindowType } from "../hooks/useAppStore";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Dispatch,
+  FocusEvent,
+  MouseEventHandler,
+  PointerEventHandler,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Resizable } from "re-resizable";
 
 const minWidth = 400;
 const maxWidth = "90vw";
 const minHeight = 200;
 const maxHeight = "90vh";
+
+const WindowMenu = ({
+  onPointerDown,
+  isActive,
+  closeWindow,
+  minimizeWindow,
+  enterFullScreen,
+  data,
+  fullScreen,
+  searchUrl,
+  setSearchUrl,
+}: {
+  minimizeWindow: MouseEventHandler<HTMLDivElement>;
+  closeWindow: MouseEventHandler<HTMLDivElement>;
+  isActive: boolean;
+  onPointerDown: PointerEventHandler<HTMLDivElement>;
+  data: WindowType;
+  enterFullScreen: MouseEventHandler<HTMLDivElement>;
+  fullScreen: boolean;
+  searchUrl: string;
+  setSearchUrl: Dispatch<SetStateAction<string>>;
+}) => {
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const cleanUrl = (input: string) => {
+    // Step 1: Remove protocol
+    let cleaned = input.replace(/^https?:\/\//, "");
+
+    // Step 2: Remove www.
+    cleaned = cleaned.replace(/^www\./, "");
+
+    return cleaned;
+  };
+
+  const handleSearchSubmit = () => {
+    const trimmed = searchInput.trim();
+    const hasProtocol = /^https?:\/\//i.test(trimmed);
+
+    if (isURL(trimmed)) {
+      setSearchUrl(hasProtocol ? trimmed : `https://${trimmed}`);
+      setSearchFocused(false);
+    } else {
+      const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(
+        trimmed
+      )}`;
+      setSearchUrl(searchUrl);
+    }
+  };
+
+  useEffect(() => {
+    if (searchFocused) searchInputRef.current?.focus();
+  }, [searchFocused]);
+
+  const handleFocus = () => setSearchFocused(true);
+  const handleBlur = (e: FocusEvent<HTMLDivElement, Element>) => {
+    // if focus moved outside the wrapper
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setSearchFocused(false);
+    }
+  };
+
+  return (
+    <div
+      onDoubleClick={enterFullScreen}
+      onPointerDown={onPointerDown}
+      className={clsx(
+        "min-h-[28px] w-full flex items-center select-none backdrop-blur-[13px] transition-colors ease-in-out px-[10px]",
+        isActive ? "shadow-window" : "shadow-window-inactive",
+        isActive ? "bg-white" : "bg-[#F6F6F6]"
+      )}
+    >
+      <div className="flex items-center gap-[8px]">
+        <Button isActive={isActive} onClick={closeWindow} color="red" />
+        <Button
+          isActive={isActive}
+          onClick={minimizeWindow}
+          color="yellow"
+          disabled={fullScreen}
+        />
+        <Button onClick={enterFullScreen} isActive={isActive} color="green" />
+      </div>
+      {data.id === "safari" ? (
+        <div className="h-[53px] w-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center ml-[25px] gap-[15px] justify-items-center">
+          <div className="flex flex-shrink-0">
+            <img src="/Safari/sidebar.svg" alt="" />
+            <div className="flex ml-[20px] gap-[20px]">
+              <img src="/Safari/left.svg" alt="" />
+              <img src="/Safari/right.svg" alt="" />
+            </div>
+          </div>
+          <div className="flex gap-[15px] items-center w-full max-w-[400px] ">
+            <img src="/Safari/shield.svg" alt="" />
+            <div
+              onPointerDown={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              className="bg-[rgba(0,0,0,0.05)] rounded-[6px] h-[28px] flex items-center w-full p-[8px] relative overflow-hidden cursor-text"
+              onClick={handleFocus}
+            >
+              <div
+                className={clsx(
+                  searchUrl ? "hidden" : searchFocused ? "hidden" : "block",
+                  "absolute-center flex items-center w-full pointer-events-none overflow-hidden text-[#BABABA] font-medium text-[14px]"
+                )}
+              >
+                <div className="flex items-center mx-auto whitespace-nowrap truncate">
+                  <img
+                    src="/Safari/search.svg"
+                    alt=""
+                    className="h-[14px] w-[14px] flex-shrink-0 mx-[6px]"
+                  />
+                  <span className="min-w-0">Search or enter website name</span>
+                </div>
+              </div>
+              <div
+                className={clsx(
+                  searchUrl && !searchFocused ? "block" : "hidden",
+                  "absolute-center flex items-center w-full pointer-events-none overflow-hidden text-[#BABABA] font-medium text-[14px]"
+                )}
+              >
+                <div className="flex items-center mx-auto whitespace-nowrap truncate">
+                  <img
+                    src="/Safari/lock.svg"
+                    alt=""
+                    className="h-[14px] w-[14px] flex-shrink-0 mx-[6px]"
+                  />
+                  <span className="min-w-0 text-[#4C4C4C]">
+                    {cleanUrl(searchUrl)}
+                  </span>
+                </div>
+              </div>
+              <img
+                src="/Safari/search.svg"
+                alt=""
+                className={clsx(
+                  searchFocused ? "block" : "hidden",
+                  "mx-[6px] h-[14px] w-[14px]"
+                )}
+              />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearchSubmit();
+                  }
+                }}
+                placeholder={
+                  searchFocused ? "Search or enter website name" : ""
+                }
+                className={clsx(
+                  searchFocused ? "block" : "hidden",
+                  "min-w-0 text-center text-[14px] outline-none focus:text-left absolute top-0 pl-[26px] w-full h-full box-border placeholder-[#BABABA] pb-[1px] text-[#4C4C4C] font-medium"
+                )}
+                size={1}
+                onBlur={handleBlur}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-[20px] flex-shrink-0">
+            <img src="/Safari/download.svg" alt="" />
+            <img src="/Safari/share.svg" alt="" />
+            <img src="/Safari/add.svg" alt="" />
+            <img src="/Safari/copy.svg" alt="" />
+          </div>
+        </div>
+      ) : (
+        <div
+          className={clsx(
+            "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-[13px] transition-colors ease-in-out",
+            isActive ? "text-[#3D3D3D]" : "text-[rgba(60,60,67,0.6)]"
+          )}
+        >
+          {data.title}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Button = ({
   color,
@@ -59,6 +253,7 @@ const Window = ({
     removeFullScreenWindow,
     transitionDuration,
   } = useAppStore((state) => state);
+  const [changing, setChanging] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const dataRef = useRef(data);
   const [offsetX, offsetY] = useMemo(() => {
@@ -66,6 +261,7 @@ const Window = ({
     const rand = () => Math.floor(Math.random() * maxOffset * 2) - maxOffset;
     return [rand(), rand()];
   }, []);
+  const [searchUrl, setSearchUrl] = useState("");
   const [fullScreen, setFullScreen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const minimizedRef = useRef(minimized);
@@ -120,10 +316,12 @@ const Window = ({
   const onAnimationComplete = (def: string) => {
     switch (def) {
       case "enterFullScreen":
+        setChanging(false);
         setEnableConstraints(false);
         break;
 
       case "exitFullScreen":
+        setChanging(false);
         setEnableConstraints(true);
         break;
 
@@ -133,6 +331,22 @@ const Window = ({
 
       case "enterMinimized":
         setMinimized(true);
+        break;
+
+      default:
+        break;
+    }
+  };
+
+  const onAnimationStart = (def: string) => {
+    switch (def) {
+      case "enterFullScreen":
+        setChanging(true);
+        break;
+
+      case "exitFullScreen":
+        setChanging(true);
+        setEnableConstraints(true);
         break;
 
       default:
@@ -160,6 +374,7 @@ const Window = ({
       : 0;
 
     if (!minimizedRef.current) {
+      setPosition({ x: x.get(), y: y.get() });
       animate(x, tempX + tempWidth / 2 - width.get() / 2, {
         duration: transitionDuration,
       });
@@ -177,12 +392,15 @@ const Window = ({
 
   useEffect(() => {
     const tempRef = dockIconRef.current;
-    tempRef?.addEventListener("click", minimizeWindow);
+    const dockIconClick = () => {
+      if (!fullScreen) minimizeWindow();
+    };
+    tempRef?.addEventListener("click", dockIconClick);
 
     return () => {
-      tempRef?.removeEventListener("click", minimizeWindow);
+      tempRef?.removeEventListener("click", dockIconClick);
     };
-  }, [dockIconRef, minimizeWindow]);
+  }, [dockIconRef, minimizeWindow, fullScreen]);
 
   useEffect(() => {
     dataRef.current = data;
@@ -201,6 +419,10 @@ const Window = ({
     if (activeWindow === dataRef.current.id) setIsActive(true);
     else setIsActive(false);
   }, [activeWindow]);
+
+  useEffect(() => {
+    console.log("search url");
+  }, [searchUrl]);
 
   return (
     <motion.div
@@ -253,15 +475,20 @@ const Window = ({
         height: height.get(),
       }}
       animate={currentAnimation}
+      onAnimationStart={onAnimationStart}
       onAnimationComplete={onAnimationComplete}
       transition={{ duration: transitionDuration }}
-      drag={!fullScreen}
+      drag={!fullScreen || !changing}
       dragControls={dragControls}
       dragConstraints={enableConstraints ? dragConstraints : undefined}
       dragElastic={0}
       dragMomentum={false}
       dragListener={false}
-      onDragEnd={() => setPosition({ x: x.get(), y: y.get() })}
+      onDragStart={() => setChanging(true)}
+      onDragEnd={() => {
+        setChanging(false);
+        setPosition({ x: x.get(), y: y.get() });
+      }}
       className={clsx(
         !fullScreen && "rounded-[10px] window",
         minimized && "hidden",
@@ -274,6 +501,7 @@ const Window = ({
         {...(fullScreen
           ? { enable: false }
           : { minHeight, maxHeight, minWidth, maxWidth })}
+        {...(changing && { enable: false })}
         {...(isActive ? {} : { enable: false })}
         size={{ width: "100%", height: "100%" }}
         onResize={(e, direction, ref, delta) => {
@@ -290,48 +518,47 @@ const Window = ({
           width.set(ref.offsetWidth);
           height.set(ref.offsetHeight);
         }}
-        onResizeStop={(e, direction, ref, delta) => {
+        onResizeStart={() => setChanging(true)}
+        onResizeStop={() => {
+          setChanging(false);
           setSize({
-            width: size.width + delta.width,
-            height: size.height + delta.height,
+            width: width.get(),
+            height: height.get(),
           });
           setPosition({ x: x.get(), y: y.get() });
         }}
+        className="grid grid-rows-[auto_1fr]"
       >
-        <div
-          onDoubleClick={enterFullScreen}
+        <WindowMenu
+          enterFullScreen={enterFullScreen}
           onPointerDown={(e) => {
             if (!fullScreen) dragControls.start(e);
           }}
-          className={clsx(
-            "h-[28px] absolute top-0 left-0 w-full flex items-center px-[8px] select-none backdrop-blur-[13px] transition-colors ease-in-out",
-            isActive ? "shadow-window" : "shadow-window-inactive",
-            isActive ? "bg-white" : "bg-[#F6F6F6]"
-          )}
-        >
-          <div className="flex items-center gap-[8px]">
-            <Button isActive={isActive} onClick={closeWindow} color="red" />
-            <Button
-              isActive={isActive}
-              onClick={minimizeWindow}
-              color="yellow"
-              disabled={fullScreen}
+          closeWindow={closeWindow}
+          data={data}
+          fullScreen={fullScreen}
+          isActive={isActive}
+          minimizeWindow={minimizeWindow}
+          searchUrl={searchUrl}
+          setSearchUrl={setSearchUrl}
+        />
+        {data.id === "safari" ? (
+          <div className="relative">
+            <iframe
+              sandbox="allow-scripts allow-same-origin allow-forms"
+              className={clsx(
+                "h-full w-full",
+                changing && "pointer-events-none"
+              )}
+              src={searchUrl ? searchUrl : undefined}
             />
-            <Button
-              onClick={enterFullScreen}
-              isActive={isActive}
-              color="green"
-            />
-          </div>
-          <div
-            className={clsx(
-              "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-[13px] transition-colors ease-in-out",
-              isActive ? "text-[#3D3D3D]" : "text-[rgba(60,60,67,0.6)]"
+            {!isActive && (
+              <div className="absolute w-full h-full top-0 left-0"></div>
             )}
-          >
-            {data.title}
           </div>
-        </div>
+        ) : (
+          <div>Test</div>
+        )}
       </Resizable>
     </motion.div>
   );

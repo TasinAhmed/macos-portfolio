@@ -64,7 +64,7 @@ const AppIcon = ({
       }}
     >
       <Image
-        src={"/" + data.src}
+        src={"/Dock/" + data.src}
         alt="Dock icon"
         width={0}
         height={0}
