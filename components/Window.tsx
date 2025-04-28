@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { isURL } from "validator";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
-import { useAppStore, WindowType } from "../hooks/useAppStore";
+import { useAppStore } from "../hooks/useAppStore";
 import {
   Dispatch,
   FocusEvent,
@@ -15,11 +15,15 @@ import {
   useState,
 } from "react";
 import { Resizable } from "re-resizable";
+import { BrowserHistory } from "@/utils/BrowserHistory";
+import LeftIcon from "@/public/Safari/left.svg";
+import RightIcon from "@/public/Safari/right.svg";
+import { ItemType } from "@/configs/apps";
 
 const minWidth = 400;
-const maxWidth = "90vw";
+const maxWidth = "100vw";
 const minHeight = 200;
-const maxHeight = "90vh";
+const maxHeight = "100vh";
 
 const WindowMenu = ({
   onPointerDown,
@@ -36,15 +40,42 @@ const WindowMenu = ({
   closeWindow: MouseEventHandler<HTMLDivElement>;
   isActive: boolean;
   onPointerDown: PointerEventHandler<HTMLDivElement>;
-  data: WindowType;
+  data: ItemType;
   enterFullScreen: MouseEventHandler<HTMLDivElement>;
   fullScreen: boolean;
   searchUrl: string;
   setSearchUrl: Dispatch<SetStateAction<string>>;
 }) => {
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const urlListRef = useRef(new BrowserHistory(searchUrl));
+  const [searchInput, setSearchInput] = useState("");
+  const [arrowState, setArrowState] = useState({
+    canBack: false,
+    canForward: false,
+  });
+
+  const backClick = () => {
+    if (!arrowState.canBack) return;
+
+    urlListRef.current.back();
+    const curr = urlListRef.current.getCurrentPage();
+    setSearchUrl(curr);
+    setSearchInput(curr);
+  };
+
+  const forwardClick = () => {
+    if (!arrowState.canForward) return;
+
+    urlListRef.current.forward();
+    const curr = urlListRef.current.getCurrentPage();
+    setSearchUrl(curr);
+    setSearchInput(curr);
+  };
+
+  const visitPage = (page: string) => {
+    urlListRef.current.visit(page);
+  };
 
   const cleanUrl = (input: string) => {
     // Step 1: Remove protocol
@@ -59,16 +90,19 @@ const WindowMenu = ({
   const handleSearchSubmit = () => {
     const trimmed = searchInput.trim();
     const hasProtocol = /^https?:\/\//i.test(trimmed);
+    let url;
 
     if (isURL(trimmed)) {
-      setSearchUrl(hasProtocol ? trimmed : `https://${trimmed}`);
-      setSearchFocused(false);
+      url = hasProtocol ? trimmed : `https://${trimmed}`;
     } else {
-      const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(
+      url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(
         trimmed
       )}`;
-      setSearchUrl(searchUrl);
     }
+    setSearchInput(url);
+    setSearchFocused(false);
+    setSearchUrl(url);
+    visitPage(url);
   };
 
   useEffect(() => {
@@ -81,7 +115,20 @@ const WindowMenu = ({
     if (!e.currentTarget.contains(e.relatedTarget)) {
       setSearchFocused(false);
     }
+
+    if (searchInput) {
+      const length = searchInput.length;
+      // Set cursor to end without selection
+      searchInputRef.current?.setSelectionRange(length, length);
+    }
   };
+
+  useEffect(() => {
+    setArrowState({
+      canBack: urlListRef.current.canBack(),
+      canForward: urlListRef.current.canForward(),
+    });
+  }, [searchUrl]);
 
   return (
     <div
@@ -101,15 +148,37 @@ const WindowMenu = ({
           color="yellow"
           disabled={fullScreen}
         />
-        <Button onClick={enterFullScreen} isActive={isActive} color="green" />
+        <Button
+          onClick={enterFullScreen}
+          isActive={isActive}
+          disabled={data.disableFullscreen}
+          color="green"
+        />
       </div>
       {data.id === "safari" ? (
         <div className="h-[53px] w-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center ml-[25px] gap-[15px] justify-items-center">
-          <div className="flex flex-shrink-0">
+          <div
+            className="flex flex-shrink-0"
+            onDoubleClick={(e) => e.stopPropagation()}
+          >
             <img src="/Safari/sidebar.svg" alt="" />
             <div className="flex ml-[20px] gap-[20px]">
-              <img src="/Safari/left.svg" alt="" />
-              <img src="/Safari/right.svg" alt="" />
+              <LeftIcon
+                onClick={backClick}
+                className={clsx(
+                  arrowState.canBack
+                    ? "fill-[#737373] cursor-pointer"
+                    : "fill-[#BFBFBF]"
+                )}
+              />
+              <RightIcon
+                onClick={forwardClick}
+                className={clsx(
+                  arrowState.canForward
+                    ? "fill-[#737373] cursor-pointer"
+                    : "fill-[#BFBFBF]"
+                )}
+              />
             </div>
           </div>
           <div className="flex gap-[15px] items-center w-full max-w-[400px] ">
@@ -196,7 +265,7 @@ const WindowMenu = ({
             isActive ? "text-[#3D3D3D]" : "text-[rgba(60,60,67,0.6)]"
           )}
         >
-          {data.title}
+          {data.name}
         </div>
       )}
     </div>
@@ -240,7 +309,7 @@ const Window = ({
   dragConstraints,
   dockIconRef,
 }: {
-  data: WindowType;
+  data: ItemType;
   dragConstraints: React.RefObject<HTMLDivElement | null>;
   dockIconRef: React.RefObject<HTMLDivElement | null>;
 }) => {
@@ -253,15 +322,16 @@ const Window = ({
     removeFullScreenWindow,
     transitionDuration,
   } = useAppStore((state) => state);
+  const windows = useAppStore((state) => state.windows);
   const [changing, setChanging] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const dataRef = useRef(data);
   const [offsetX, offsetY] = useMemo(() => {
     const maxOffset = 200; // adjust how far it can be off-center
     const rand = () => Math.floor(Math.random() * maxOffset * 2) - maxOffset;
-    return [rand(), rand()];
-  }, []);
-  const [searchUrl, setSearchUrl] = useState("");
+    return windows.size === 1 ? [0, 0] : [rand(), rand()];
+  }, [windows]);
+  const [searchUrl, setSearchUrl] = useState("home");
   const [fullScreen, setFullScreen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const minimizedRef = useRef(minimized);
@@ -293,8 +363,6 @@ const Window = ({
     if (!fullScreen) {
       addFullScreenWindow(dataRef.current.id);
       setPosition({ x: x.get(), y: y.get() });
-      animate(x, 0, { duration: transitionDuration });
-      animate(y, 0, { duration: transitionDuration });
       setCurrentAnimation("enterFullScreen");
     } else {
       removeFullScreenWindow(dataRef.current.id);
@@ -302,7 +370,6 @@ const Window = ({
       animate(y, position.y, { duration: transitionDuration });
       setCurrentAnimation("exitFullScreen");
     }
-    setFullScreen(!fullScreen);
   }, [
     fullScreen,
     position,
@@ -321,6 +388,7 @@ const Window = ({
         break;
 
       case "exitFullScreen":
+        setFullScreen(false);
         setChanging(false);
         setEnableConstraints(true);
         break;
@@ -341,6 +409,7 @@ const Window = ({
   const onAnimationStart = (def: string) => {
     switch (def) {
       case "enterFullScreen":
+        setFullScreen(true);
         setChanging(true);
         break;
 
@@ -360,6 +429,7 @@ const Window = ({
   };
 
   const minimizeWindow = useCallback(() => {
+    console.log(dockIconRef.current, "docker icon");
     const tempX = dockIconRef.current
       ? dockIconRef.current.getBoundingClientRect().x
       : 0;
@@ -374,17 +444,19 @@ const Window = ({
       : 0;
 
     if (!minimizedRef.current) {
+      console.log(
+        tempX,
+        tempY,
+        tempWidth,
+        tempHeight,
+        width.get(),
+        height.get(),
+        tempX + tempWidth / 2 - width.get() / 2,
+        tempY + tempHeight / 2 - height.get() / 2
+      );
       setPosition({ x: x.get(), y: y.get() });
-      animate(x, tempX + tempWidth / 2 - width.get() / 2, {
-        duration: transitionDuration,
-      });
-      animate(y, tempY + tempHeight / 2 - height.get() / 2, {
-        duration: transitionDuration,
-      });
       setCurrentAnimation("enterMinimized");
     } else {
-      animate(x, position.x, { duration: transitionDuration });
-      animate(y, position.y, { duration: transitionDuration });
       setMinimized(false);
       setCurrentAnimation("exitMinimized");
     }
@@ -420,10 +492,6 @@ const Window = ({
     else setIsActive(false);
   }, [activeWindow]);
 
-  useEffect(() => {
-    console.log("search url");
-  }, [searchUrl]);
-
   return (
     <motion.div
       variants={{
@@ -432,12 +500,16 @@ const Window = ({
           scale: 1,
         },
         enterFullScreen: {
+          x: 0,
+          y: 0,
           opacity: 1,
           scale: 1,
           width: "100%",
           height: "100%",
         },
         exitFullScreen: {
+          x: position.x,
+          y: position.y,
           opacity: 1,
           scale: 1,
           width: size.width,
@@ -450,10 +522,20 @@ const Window = ({
         enterMinimized: {
           opacity: 0,
           scale: 0.1,
+          x:
+            (dockIconRef.current?.getBoundingClientRect().x || 0) +
+            (dockIconRef.current?.getBoundingClientRect().width || 0) / 2 -
+            width.get() / 2,
+          y:
+            (dockIconRef.current?.getBoundingClientRect().y || 0) +
+            (dockIconRef.current?.getBoundingClientRect().height || 0) / 2 -
+            width.get() / 2,
         },
         exitMinimized: {
           opacity: 1,
           scale: 1,
+          x: position.x,
+          y: position.y,
         },
       }}
       onMouseDown={(e) => {
@@ -466,7 +548,7 @@ const Window = ({
         y,
         width,
         height,
-        ...(!fullScreen && { maxHeight, maxWidth, minWidth, minHeight }),
+        ...{ minHeight, maxHeight, maxWidth, minWidth },
       }}
       initial={{
         opacity: 0,
@@ -497,13 +579,17 @@ const Window = ({
     >
       <Resizable
         bounds={dragConstraints.current!}
+        as={motion.div}
         boundsByDirection
-        {...(fullScreen
-          ? { enable: false }
-          : { minHeight, maxHeight, minWidth, maxWidth })}
+        {...(fullScreen && { enable: false })}
         {...(changing && { enable: false })}
         {...(isActive ? {} : { enable: false })}
-        size={{ width: "100%", height: "100%" }}
+        {...{ minHeight, maxHeight, maxWidth, minWidth }}
+        size={
+          fullScreen
+            ? { width: "100%", height: "100%" }
+            : { width: width.get(), height: height.get() }
+        }
         onResize={(e, direction, ref, delta) => {
           if (["left", "topLeft", "top"].includes(direction)) {
             x.set(position.x - delta.width);
@@ -543,8 +629,12 @@ const Window = ({
           setSearchUrl={setSearchUrl}
         />
         {data.id === "safari" ? (
-          <div className="relative">
-            <iframe
+          <motion.div
+            className="relative"
+            style={{ width: "100%", height: "100%" }}
+          >
+            <motion.iframe
+              style={{ width: "100%", height: "100%" }}
               sandbox="allow-scripts allow-same-origin allow-forms"
               className={clsx(
                 "h-full w-full",
@@ -552,12 +642,18 @@ const Window = ({
               )}
               src={searchUrl ? searchUrl : undefined}
             />
-            {!isActive && (
-              <div className="absolute w-full h-full top-0 left-0"></div>
-            )}
-          </div>
+            <motion.div
+              style={{ width: "100%" }}
+              className="absolute h-full bottom-0 left-0"
+            ></motion.div>
+          </motion.div>
         ) : (
-          <div>Test</div>
+          <motion.div
+            style={{ width: "100%", height: "100%" }}
+            className="bg-red-500"
+          >
+            Test
+          </motion.div>
         )}
       </Resizable>
     </motion.div>

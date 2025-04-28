@@ -9,13 +9,7 @@ import React, { RefObject, useEffect, useState } from "react";
 import { useAppStore } from "../hooks/useAppStore";
 import clsx from "clsx";
 import Image from "next/image";
-
-interface ItemType {
-  id: string;
-  src: string;
-  size?: number;
-  name: string;
-}
+import { apps, ItemType } from "@/configs/apps";
 
 const AppIcon = ({
   mouseX,
@@ -36,7 +30,7 @@ const AppIcon = ({
       return;
     }
 
-    addWindow(item.id, { title: item.name, id: item.id });
+    addWindow(item.id);
   };
 
   const distance = useTransform(mouseX, (val) => {
@@ -68,7 +62,10 @@ const AppIcon = ({
         alt="Dock icon"
         width={0}
         height={0}
-        style={{ height: data.size ? `${data.size}%` : "100%", width: "auto" }}
+        style={{
+          height: data.iconSize ? `${data.iconSize}%` : "100%",
+          width: "auto",
+        }}
         quality={100}
         unoptimized={true}
       />
@@ -91,6 +88,7 @@ const Dock = ({
 }: {
   refs: RefObject<Map<string, RefObject<HTMLDivElement | null>>>;
 }) => {
+  const items = [...apps.values()];
   const mouseX = useMotionValue(Infinity);
   const { windows, fullScreenWindows, transitionDuration } = useAppStore(
     (state) => state
@@ -112,20 +110,6 @@ const Dock = ({
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
-
-  const items: ItemType[] = [
-    { id: "apps", src: "apps.svg", name: "Launchpad" },
-    { id: "2048", src: "2048.png", name: "2048" },
-    { id: "imessage", src: "message.svg", name: "iMessage" },
-    { id: "notes", src: "notes.svg", name: "Notes" },
-    { id: "photos", src: "photos.svg", name: "Photos" },
-    { id: "calculator", src: "calculator.png", size: 84, name: "Calculator" },
-    { id: "safari", src: "safari.svg", name: "Safari" },
-    { id: "terminal", src: "terminal.png", name: "Terminal" },
-    { id: "mail", src: "mail.svg", name: "Mail" },
-    { id: "settings", src: "settings.svg", name: "Settings" },
-    { id: "trash", src: "trash-light.svg", size: 86, name: "Trash" },
-  ];
 
   useEffect(() => {
     if (fullScreenWindows.size > 0) {
