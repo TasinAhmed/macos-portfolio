@@ -3,9 +3,10 @@ import { useRef } from "react";
 import Dock from "@/components/Dock";
 import MenuBar from "@/components/MenuBar";
 import Window from "@/components/Window";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAppStore } from "@/hooks/useAppStore";
 import Image from "next/image";
+import ControlCenter from "@/components/ControlCenter";
 
 const App = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
@@ -32,16 +33,15 @@ const App = () => {
           setActiveWindow(null);
         }}
       >
-        <AnimatePresence>
-          {[...windows.values()].map((w) => (
-            <Window
-              key={w.id}
-              dragConstraints={constraintsRef}
-              data={w}
-              dockIconRef={refs.current.get(w.id)!}
-            />
-          ))}
-        </AnimatePresence>
+        <ControlCenter />
+        {[...windows.values()].map((w) => (
+          <Window
+            key={w.id}
+            dragConstraints={constraintsRef}
+            data={w}
+            dockIconRef={refs.current.get(w.id)!}
+          />
+        ))}
       </motion.div>
       <Dock refs={refs} />
     </div>

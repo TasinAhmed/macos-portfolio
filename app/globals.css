@@ -7,9 +7,39 @@ body {
   overflow: hidden;
 }
 
+.control-center {
+  backdrop-filter: blur(27.1828px);
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px 0px 5px 10px rgba(0, 0, 0, 0.299489);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.control-tile {
+  backdrop-filter: blur(20px);
+  background-color: rgba(255, 255, 255, 0.15); /* Translucent white */
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.control-tile:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
 .window {
-  filter: drop-shadow(0px 0px 20px rgba(0, 0, 0, 0.15))
-    drop-shadow(0px 25px 30px rgba(0, 0, 0, 0.35));
+  transition: box-shadow 0.3s ease;
+  /* other styles like border, background, etc. */
+}
+
+.window.active {
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.15),
+    0px 25px 30px rgba(0, 0, 0, 0.35);
+}
+
+.window.inactive {
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1); /* much subtler shadow */
 }
 
 .bg-inactive-btn {

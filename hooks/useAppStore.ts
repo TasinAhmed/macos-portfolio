@@ -20,7 +20,7 @@ interface AppStoreType {
 }
 
 export const useAppStore = create<AppStoreType>((set) => ({
-  transitionDuration: 0.2,
+  transitionDuration: 0.15,
   windows: new Map(),
   activeWindow: null,
   fullScreenWindows: new Set(),

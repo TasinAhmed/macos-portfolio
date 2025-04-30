@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { isURL } from "validator";
-import { animate, motion, useDragControls, useMotionValue } from "motion/react";
+import { motion, useDragControls, useMotionValue } from "motion/react";
 import { useAppStore } from "../hooks/useAppStore";
 import {
   Dispatch,
@@ -14,16 +14,27 @@ import {
   useRef,
   useState,
 } from "react";
-import { Resizable } from "re-resizable";
 import { BrowserHistory } from "@/utils/BrowserHistory";
 import LeftIcon from "@/public/Safari/left.svg";
 import RightIcon from "@/public/Safari/right.svg";
 import { ItemType } from "@/configs/apps";
 
-const minWidth = 400;
-const maxWidth = "100vw";
-const minHeight = 200;
-const maxHeight = "100vh";
+const resizeDirections = {
+  top: "top-0 left-4 right-4 h-2 cursor-n-resize -translate-y-1/2",
+  bottom: "bottom-0 left-4 right-4 h-2 cursor-s-resize translate-y-1/2",
+  left: "top-4 bottom-4 left-0 w-2 cursor-w-resize -translate-x-1/2",
+  right: "top-4 bottom-4 right-0 w-2 cursor-e-resize translate-x-1/2",
+  "top-left":
+    "top-0 left-0 w-4 h-4 cursor-nw-resize -translate-x-1/2 -translate-y-1/2",
+  "top-right":
+    "top-0 right-0 w-4 h-4 cursor-ne-resize translate-x-1/2 -translate-y-1/2",
+  "bottom-left":
+    "bottom-0 left-0 w-4 h-4 cursor-sw-resize -translate-x-1/2 translate-y-1/2",
+  "bottom-right":
+    "bottom-0 right-0 w-4 h-4  cursor-se-resize translate-x-1/2 translate-y-1/2",
+};
+
+type Direction = keyof typeof resizeDirections;
 
 const WindowMenu = ({
   onPointerDown,
@@ -135,6 +146,7 @@ const WindowMenu = ({
       onDoubleClick={enterFullScreen}
       onPointerDown={onPointerDown}
       className={clsx(
+        data.id === "safari" && "h-[53px]",
         "min-h-[28px] w-full flex items-center select-none backdrop-blur-[13px] transition-colors ease-in-out px-[10px]",
         isActive ? "shadow-window" : "shadow-window-inactive",
         isActive ? "bg-white" : "bg-[#F6F6F6]"
@@ -156,7 +168,7 @@ const WindowMenu = ({
         />
       </div>
       {data.id === "safari" ? (
-        <div className="h-[53px] w-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center ml-[25px] gap-[15px] justify-items-center">
+        <div className="w-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center ml-[25px] gap-[15px] justify-items-center">
           <div
             className="flex flex-shrink-0"
             onDoubleClick={(e) => e.stopPropagation()}
@@ -304,6 +316,19 @@ const Button = ({
   );
 };
 
+const ResizeHandle = ({
+  direction,
+  onMouseDown,
+}: {
+  direction: Direction;
+  onMouseDown: (e: React.MouseEvent, dir: Direction) => void;
+}) => (
+  <div
+    onMouseDown={(e) => onMouseDown(e, direction)}
+    className={`absolute z-10 bg-transparent ${resizeDirections[direction]}`}
+  />
+);
+
 const Window = ({
   data,
   dragConstraints,
@@ -313,6 +338,10 @@ const Window = ({
   dragConstraints: React.RefObject<HTMLDivElement | null>;
   dockIconRef: React.RefObject<HTMLDivElement | null>;
 }) => {
+  const minWidth = 400;
+  const maxWidth = window.innerWidth;
+  const minHeight = 200;
+  const maxHeight = window.innerHeight - 30;
   const dragControls = useDragControls();
   const {
     removeWindow,
@@ -334,7 +363,6 @@ const Window = ({
   const [searchUrl, setSearchUrl] = useState("home");
   const [fullScreen, setFullScreen] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const minimizedRef = useRef(minimized);
   const height = useMotionValue(200);
   const width = useMotionValue(400);
   const x = useMotionValue(
@@ -358,31 +386,95 @@ const Window = ({
   });
   const [enableConstraints, setEnableConstraints] = useState(true);
   const [currentAnimation, setCurrentAnimation] = useState("enter");
+  const isResizing = useRef(false);
+
+  const startResize = (e: React.MouseEvent, direction: Direction) => {
+    e.preventDefault();
+    isResizing.current = true;
+    const startWidth = width.get();
+    const startHeight = height.get();
+    const startXVal = x.get();
+    const startYVal = y.get();
+
+    const parentRect = dragConstraints.current?.getBoundingClientRect();
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current || !parentRect) return;
+
+      setChanging(true);
+      // Cursor position relative to parent
+      const relX = e.clientX - parentRect.left;
+      const relY = e.clientY - parentRect.top;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startXVal;
+      let newY = startYVal;
+
+      if (direction.includes("right")) {
+        newWidth = Math.min(
+          parentRect.width - startXVal,
+          Math.max(minWidth, relX - startXVal)
+        );
+      }
+
+      if (direction.includes("left")) {
+        const leftEdge = Math.max(
+          0,
+          Math.min(startXVal + startWidth - minWidth, relX)
+        );
+        newX = leftEdge;
+        newWidth = startXVal + startWidth - leftEdge;
+      }
+
+      if (direction.includes("bottom")) {
+        newHeight = Math.min(
+          parentRect.height - startYVal,
+          Math.max(minHeight, relY - startYVal)
+        );
+      }
+
+      if (direction.includes("top")) {
+        const topEdge = Math.max(
+          0,
+          Math.min(startYVal + startHeight - minHeight, relY)
+        );
+        newY = topEdge;
+        newHeight = startYVal + startHeight - topEdge;
+      }
+
+      width.set(newWidth);
+      height.set(newHeight);
+      x.set(newX);
+      y.set(newY);
+    };
+
+    const onMouseUp = () => {
+      setChanging(false);
+      setSize({ width: width.get(), height: height.get() });
+      isResizing.current = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
 
   const enterFullScreen = useCallback(() => {
     if (!fullScreen) {
-      addFullScreenWindow(dataRef.current.id);
       setPosition({ x: x.get(), y: y.get() });
       setCurrentAnimation("enterFullScreen");
+      addFullScreenWindow(dataRef.current.id);
     } else {
       removeFullScreenWindow(dataRef.current.id);
-      animate(x, position.x, { duration: transitionDuration });
-      animate(y, position.y, { duration: transitionDuration });
       setCurrentAnimation("exitFullScreen");
     }
-  }, [
-    fullScreen,
-    position,
-    addFullScreenWindow,
-    removeFullScreenWindow,
-    x,
-    y,
-    transitionDuration,
-  ]);
+  }, [fullScreen, addFullScreenWindow, removeFullScreenWindow, x, y]);
 
   const onAnimationComplete = (def: string) => {
     switch (def) {
       case "enterFullScreen":
+        setFullScreen(true);
         setChanging(false);
         setEnableConstraints(false);
         break;
@@ -409,7 +501,6 @@ const Window = ({
   const onAnimationStart = (def: string) => {
     switch (def) {
       case "enterFullScreen":
-        setFullScreen(true);
         setChanging(true);
         break;
 
@@ -429,38 +520,14 @@ const Window = ({
   };
 
   const minimizeWindow = useCallback(() => {
-    console.log(dockIconRef.current, "docker icon");
-    const tempX = dockIconRef.current
-      ? dockIconRef.current.getBoundingClientRect().x
-      : 0;
-    const tempY = dockIconRef.current
-      ? dockIconRef.current.getBoundingClientRect().y
-      : 0;
-    const tempWidth = dockIconRef.current
-      ? dockIconRef.current.getBoundingClientRect().width
-      : 0;
-    const tempHeight = dockIconRef.current
-      ? dockIconRef.current.getBoundingClientRect().height
-      : 0;
-
-    if (!minimizedRef.current) {
-      console.log(
-        tempX,
-        tempY,
-        tempWidth,
-        tempHeight,
-        width.get(),
-        height.get(),
-        tempX + tempWidth / 2 - width.get() / 2,
-        tempY + tempHeight / 2 - height.get() / 2
-      );
+    if (!minimized) {
       setPosition({ x: x.get(), y: y.get() });
       setCurrentAnimation("enterMinimized");
     } else {
       setMinimized(false);
       setCurrentAnimation("exitMinimized");
     }
-  }, [dockIconRef, height, position, transitionDuration, width, x, y]);
+  }, [minimized, x, y]);
 
   useEffect(() => {
     const tempRef = dockIconRef.current;
@@ -478,10 +545,6 @@ const Window = ({
     dataRef.current = data;
   }, [data]);
 
-  useEffect(() => {
-    minimizedRef.current = minimized;
-  }, [minimized]);
-
   const setAsActive = useCallback(() => {
     if (activeWindow === dataRef.current.id) return;
     setActiveWindow(dataRef.current.id);
@@ -491,6 +554,25 @@ const Window = ({
     if (activeWindow === dataRef.current.id) setIsActive(true);
     else setIsActive(false);
   }, [activeWindow]);
+
+  useEffect(() => {
+    if (dragConstraints.current) {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (fullScreen) {
+            width.set(entry.contentRect.width);
+            height.set(entry.contentRect.height);
+          }
+        }
+      });
+
+      observer.observe(dragConstraints.current);
+
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, [fullScreen, dragConstraints, height, width]);
 
   return (
     <motion.div
@@ -504,8 +586,8 @@ const Window = ({
           y: 0,
           opacity: 1,
           scale: 1,
-          width: "100%",
-          height: "100%",
+          width: dragConstraints.current?.getBoundingClientRect().width,
+          height: dragConstraints.current?.getBoundingClientRect().height,
         },
         exitFullScreen: {
           x: position.x,
@@ -548,7 +630,10 @@ const Window = ({
         y,
         width,
         height,
-        ...{ minHeight, maxHeight, maxWidth, minWidth },
+        minHeight,
+        maxHeight,
+        maxWidth,
+        minWidth,
       }}
       initial={{
         opacity: 0,
@@ -571,49 +656,15 @@ const Window = ({
         setChanging(false);
         setPosition({ x: x.get(), y: y.get() });
       }}
-      className={clsx(
-        !fullScreen && "rounded-[10px] window",
-        minimized && "hidden",
-        "absolute bg-[#ffffffbe] border-solid border-[#0000001e] backdrop-blur-[40px] overflow-hidden"
-      )}
+      className={clsx(minimized && "hidden", "absolute")}
     >
-      <Resizable
-        bounds={dragConstraints.current!}
-        as={motion.div}
-        boundsByDirection
-        {...(fullScreen && { enable: false })}
-        {...(changing && { enable: false })}
-        {...(isActive ? {} : { enable: false })}
-        {...{ minHeight, maxHeight, maxWidth, minWidth }}
-        size={
-          fullScreen
-            ? { width: "100%", height: "100%" }
-            : { width: width.get(), height: height.get() }
-        }
-        onResize={(e, direction, ref, delta) => {
-          if (["left", "topLeft", "top"].includes(direction)) {
-            x.set(position.x - delta.width);
-            y.set(position.y - delta.height);
-          }
-          if (["topRight"].includes(direction)) {
-            y.set(position.y - delta.height);
-          }
-          if (["bottomLeft"].includes(direction)) {
-            x.set(position.x - delta.width);
-          }
-          width.set(ref.offsetWidth);
-          height.set(ref.offsetHeight);
-        }}
-        onResizeStart={() => setChanging(true)}
-        onResizeStop={() => {
-          setChanging(false);
-          setSize({
-            width: width.get(),
-            height: height.get(),
-          });
-          setPosition({ x: x.get(), y: y.get() });
-        }}
-        className="grid grid-rows-[auto_1fr]"
+      <motion.div
+        style={{ width, height }}
+        className={clsx(
+          !fullScreen && "rounded-[10px]",
+          !fullScreen && isActive ? "active" : "inactive",
+          "grid grid-rows-[auto_1fr] bg-[#ffffffbe] overflow-hidden border-solid border-[#0000001e] backdrop-blur-[40px] transition-[filter] window"
+        )}
       >
         <WindowMenu
           enterFullScreen={enterFullScreen}
@@ -629,12 +680,8 @@ const Window = ({
           setSearchUrl={setSearchUrl}
         />
         {data.id === "safari" ? (
-          <motion.div
-            className="relative"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <motion.iframe
-              style={{ width: "100%", height: "100%" }}
+          <div className="relative h-full w-full">
+            <iframe
               sandbox="allow-scripts allow-same-origin allow-forms"
               className={clsx(
                 "h-full w-full",
@@ -642,20 +689,27 @@ const Window = ({
               )}
               src={searchUrl ? searchUrl : undefined}
             />
-            <motion.div
-              style={{ width: "100%" }}
-              className="absolute h-full bottom-0 left-0"
-            ></motion.div>
-          </motion.div>
+            {(fullScreen || !isActive) && (
+              <div
+                className={clsx(
+                  !isActive ? "h-full" : "h-[85px]",
+                  "absolute bottom-0 left-0 w-full"
+                )}
+              ></div>
+            )}
+          </div>
         ) : (
-          <motion.div
-            style={{ width: "100%", height: "100%" }}
-            className="bg-red-500"
-          >
-            Test
-          </motion.div>
+          <div className="h-full w-full">Test</div>
         )}
-      </Resizable>
+      </motion.div>
+      {!fullScreen &&
+        Object.keys(resizeDirections).map((dir) => (
+          <ResizeHandle
+            key={dir}
+            direction={dir as Direction}
+            onMouseDown={startResize}
+          />
+        ))}
     </motion.div>
   );
 };
