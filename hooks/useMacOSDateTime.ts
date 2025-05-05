@@ -17,15 +17,18 @@ export function useMacOSDateTime() {
     const month = date.toLocaleDateString("en-US", { month: "short" }); // Apr
     const day = date.getDate(); // 21
 
-    let hours = date.getHours();
+    const hours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
 
-    hours = hours % 12 || 12; // convert 0 to 12-hour format
-
     return {
       date: `${weekday} ${month} ${day}`,
-      time: `${hours}:${minutes} ${ampm}`,
+      time: `${hours % 12 || 12}:${minutes}`,
+      time24: `${hours}:${minutes}`,
+      ampm,
+      weekday,
+      month,
+      day,
     };
   };
 

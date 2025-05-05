@@ -1,23 +1,46 @@
 "use client";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Dock from "@/components/Dock";
 import MenuBar from "@/components/MenuBar";
 import Window from "@/components/Window";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/hooks/useAppStore";
 import Image from "next/image";
-import ControlCenter from "@/components/ControlCenter";
 import { useTheme } from "next-themes";
 import clsx from "clsx";
 import InitialLoader from "@/components/InitialLoader";
+import Lockscreen from "@/components/Lockscreen";
 
 const App = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
-  const { windows, setActiveWindow } = useAppStore((state) => state);
+  const { windows, setActiveWindow, showLockscreen, fullScreenWindows } =
+    useAppStore((state) => state);
   const refs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(
     new Map()
   );
   const { theme } = useTheme();
+  const [atBottom, setAtBottom] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const threshold = 80;
+      const screenHeight = window.innerHeight;
+      const mouseY = e.clientY;
+      setAtBottom(mouseY >= screenHeight - threshold);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  useEffect(() => {
+    if (fullScreenWindows.size > 0) {
+      setIsFullScreen(true);
+    } else {
+      setIsFullScreen(false);
+    }
+  }, [fullScreenWindows]);
 
   const imgProps = {
     fill: true,
@@ -28,6 +51,7 @@ const App = () => {
   return (
     <div className="h-screen w-screen grid grid-rows-[auto_1fr] overflow-hidden">
       <InitialLoader />
+      <Lockscreen />
       <Image
         src="/bg-dark.jpg"
         className={clsx(
@@ -46,7 +70,7 @@ const App = () => {
         )}
         {...imgProps}
       />
-      <MenuBar />
+      <MenuBar showMenu={!showLockscreen} />
       <motion.div
         className="relative"
         ref={constraintsRef}
@@ -64,7 +88,13 @@ const App = () => {
           />
         ))}
       </motion.div>
-      <Dock refs={refs} />
+      <Dock
+        refs={refs}
+        showDock={
+          (!showLockscreen && atBottom && isFullScreen) ||
+          (!showLockscreen && !isFullScreen)
+        }
+      />
     </div>
   );
 };

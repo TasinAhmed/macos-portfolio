@@ -94,51 +94,26 @@ const AppIcon = ({
 };
 
 const Dock = ({
+  showDock,
   refs,
 }: {
+  showDock: boolean;
   refs: RefObject<Map<string, RefObject<HTMLDivElement | null>>>;
 }) => {
   const items = [...apps.values()];
   const mouseX = useMotionValue(Infinity);
-  const { windows, fullScreenWindows, transitionDuration } = useAppStore(
-    (state) => state
+  const { windows, transitionDuration } = useAppStore((state) => state);
+  const [currentAnimation, setCurrentAnimation] = useState<string | undefined>(
+    undefined
   );
-  const [currentAnimation, setCurrentAnimation] = useState<
-    string | undefined
-  >();
-  const [atBottom, setAtBottom] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const threshold = 80;
-      const screenHeight = window.innerHeight;
-      const mouseY = e.clientY;
-      setAtBottom(mouseY >= screenHeight - threshold);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  useEffect(() => {
-    if (fullScreenWindows.size > 0) {
-      setIsFullScreen(true);
+    if (showDock) {
+      setCurrentAnimation("enter");
     } else {
-      setIsFullScreen(false);
-    }
-  }, [fullScreenWindows]);
-
-  useEffect(() => {
-    if (isFullScreen) {
       setCurrentAnimation("exit");
-    } else {
-      setCurrentAnimation("enter");
     }
-    if (atBottom && isFullScreen) {
-      setCurrentAnimation("enter");
-    }
-  }, [isFullScreen, atBottom]);
+  }, [showDock]);
 
   return (
     <motion.div
@@ -146,9 +121,7 @@ const Dock = ({
         enter: {
           bottom: 4,
         },
-        exit: {
-          bottom: -84,
-        },
+        exit: { bottom: -84 },
       }}
       animate={currentAnimation}
       onMouseMove={(e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {

@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { IconType } from "react-icons";
 import { FaBluetoothB, FaVolumeUp, FaWifi } from "react-icons/fa";
 import {
@@ -112,9 +112,8 @@ const ControlSlider = ({
 const ControlCenter = () => {
   const { setTheme, theme } = useTheme();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
-  const { brightness, setBrightness, sound, setSound } = useAppStore(
-    (state) => state
-  );
+  const { brightness, setBrightness, sound, setSound, setShowLockscreen } =
+    useAppStore((state) => state);
 
   const handleBrightnessChange = (value: number) => {
     setBrightness(value);
@@ -141,11 +140,16 @@ const ControlCenter = () => {
           </div>
         </div>
         <div className="control-tile col-span-1 flex items-center !p-1 cursor-pointer">
-          <div className="flex-1 flex justify-center">
+          <div className="flex-1 flex justify-center h-full items-center">
             <GearIcon className="h-[20px] fill-inherit" />
           </div>
           <div className="w-[1px] h-[25px] bg-[rgba(0,0,0,0.3)] dark:bg-[rgba(255,255,255,0.3)]"></div>
-          <div className="flex-1 flex justify-center">
+          <div
+            className="flex-1 flex justify-center h-full items-center"
+            onClick={() => {
+              setShowLockscreen(true);
+            }}
+          >
             <IoIosPower size={22} fill="inherit" color="inherit" />
           </div>
         </div>

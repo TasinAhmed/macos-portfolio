@@ -1,31 +1,25 @@
-import useAudio from "@/hooks/useAudio";
 import clsx from "clsx";
 import { Progress } from "radix-ui";
 import React, { useEffect, useState } from "react";
 import { FaApple } from "react-icons/fa";
 
 const InitialLoader = () => {
-  const [progress, setProgress] = useState(13);
+  const [progress, setProgress] = useState(0);
   const [showLoading, setShowLoading] = useState(true);
-  const startupSound = useAudio("/startup.wav");
 
   useEffect(() => {
-    const steps = [30, 60, 90, 100];
-    const interval = 400;
-    let index = 0;
-
+    let current = 0;
     const id = setInterval(() => {
-      setProgress(steps[index]);
-      index++;
-
-      if (index === steps.length) {
+      current += Math.random() * 2 + 0.3; // random small increment
+      if (current >= 100) {
+        current = 100;
         clearInterval(id);
         setTimeout(() => {
           setShowLoading(false);
-          startupSound.toggle();
-        }, 100);
+        }, 500); // allow for full bar visual
       }
-    }, interval);
+      setProgress(current);
+    }, 25);
 
     return () => clearInterval(id);
   }, []);
@@ -41,15 +35,11 @@ const InitialLoader = () => {
       <FaApple color="white" size={80} />
       <Progress.Root
         className="relative h-[4px] w-[200px] overflow-hidden rounded-full bg-[rgba(255,255,255,0.25)] mt-[60px]"
-        style={{
-          // Fix overflow clipping in Safari
-          // https://gist.github.com/domske/b66047671c780a238b51c51ffde8d3a0
-          transform: "translateZ(0)",
-        }}
+        style={{ transform: "translateZ(0)" }}
         value={progress}
       >
         <Progress.Indicator
-          className="ease-[cubic-bezier(0.65, 0, 0.35, 1)] size-full bg-white transition-transform duration-[660ms]"
+          className="size-full bg-white transition-transform duration-[100ms] ease-linear"
           style={{ transform: `translateX(-${100 - progress}%)` }}
         />
       </Progress.Root>

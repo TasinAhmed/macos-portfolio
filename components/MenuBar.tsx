@@ -1,6 +1,6 @@
 "use client";
 import clsx from "clsx";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useMacOSDateTime } from "../hooks/useMacOSDateTime";
 import { useAppStore } from "@/hooks/useAppStore";
 import { apps } from "@/configs/apps";
@@ -9,6 +9,7 @@ import { IoBatteryFullOutline } from "react-icons/io5";
 import SwitchIcon from "@/public/switch.svg";
 import { Popover } from "radix-ui";
 import ControlCenter from "./ControlCenter";
+import { motion } from "motion/react";
 
 const Button = ({
   children,
@@ -30,16 +31,41 @@ const Button = ({
 };
 
 const MenuBar = ({
+  showMenu,
   onClick,
 }: {
+  showMenu: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
 }) => {
-  const { date, time } = useMacOSDateTime();
-  const { activeWindow, fullScreenWindows } = useAppStore((state) => state);
+  const { date, time, ampm } = useMacOSDateTime();
+  const {
+    activeWindow,
+    fullScreenWindows,
+    transitionDuration,
+    showLockscreen,
+  } = useAppStore((state) => state);
   const [controlOpen, setControlOpen] = useState(false);
+  const [currentAnimation, setCurrentAnimation] = useState<string | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (showMenu) {
+      setCurrentAnimation("enter");
+    } else {
+      setCurrentAnimation("exit");
+    }
+  }, [showMenu]);
+
+  useEffect(() => {
+    if (showLockscreen) setControlOpen(false);
+  }, [showLockscreen]);
 
   return (
-    <div
+    <motion.div
+      variants={{ enter: { top: 0 }, exit: { top: -34 } }}
+      animate={currentAnimation}
+      transition={{ duration: transitionDuration }}
       className="relative h-[34px] text-[14px] text-black dark:text-[rgba(255,255,255,0.9)]"
       onClick={onClick}
     >
@@ -90,11 +116,13 @@ const MenuBar = ({
           </div>
           <div className="flex items-center gap-[10px]">
             <div>{date}</div>
-            <div>{time}</div>
+            <div>
+              {time} {ampm}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -7,6 +7,8 @@ export type WindowType = {
 };
 
 interface AppStoreType {
+  showLockscreen: boolean;
+  setShowLockscreen: (value: boolean) => void;
   brightness: number;
   setBrightness: (val: number) => void;
   sound: number;
@@ -24,6 +26,8 @@ interface AppStoreType {
 }
 
 export const useAppStore = create<AppStoreType>((set) => ({
+  showLockscreen: true,
+  setShowLockscreen: (val) => set(() => ({ showLockscreen: val })),
   brightness: 100,
   setBrightness: (val) => set(() => ({ brightness: val })),
   sound: 50,
