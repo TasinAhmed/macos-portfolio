@@ -2,11 +2,12 @@ import clsx from "clsx";
 import { isURL } from "validator";
 import { motion, useDragControls, useMotionValue } from "motion/react";
 import { useAppStore } from "../hooks/useAppStore";
-import {
+import React, {
   Dispatch,
   FocusEvent,
   MouseEventHandler,
   PointerEventHandler,
+  ReactNode,
   SetStateAction,
   useCallback,
   useEffect,
@@ -18,6 +19,8 @@ import { BrowserHistory } from "@/utils/BrowserHistory";
 import LeftIcon from "@/public/Safari/left.svg";
 import RightIcon from "@/public/Safari/right.svg";
 import { ItemType } from "@/configs/apps";
+import { IoIosClose, IoIosRemove } from "react-icons/io";
+import { IoCaretDown, IoCaretUp } from "react-icons/io5";
 
 const resizeDirections = {
   top: "top-0 left-4 right-4 h-2 cursor-n-resize -translate-y-1/2",
@@ -65,6 +68,7 @@ const WindowMenu = ({
     canBack: false,
     canForward: false,
   });
+  const [showIcon, setShowIcon] = useState(false);
 
   const backClick = () => {
     if (!arrowState.canBack) return;
@@ -148,23 +152,54 @@ const WindowMenu = ({
       className={clsx(
         data.id === "safari" && "h-[53px]",
         "min-h-[28px] w-full flex items-center select-none backdrop-blur-[13px] transition-colors ease-in-out px-[10px]",
-        isActive ? "shadow-window" : "shadow-window-inactive",
-        isActive ? "bg-white" : "bg-[#F6F6F6]"
+        isActive
+          ? "shadow-window dark:shadow-window-dark"
+          : "shadow-window-inactive dark:shadow-window-inactive-dark",
+        isActive
+          ? "bg-white dark:bg-[#1E1E1E]"
+          : "bg-[#F6F6F6] dark:bg-[#1E1E1E]"
       )}
     >
       <div className="flex items-center gap-[8px]">
-        <Button isActive={isActive} onClick={closeWindow} color="red" />
+        <Button
+          isActive={isActive}
+          onClick={closeWindow}
+          color="red"
+          Icon={<IoIosClose color="#7D1A15" size={14} strokeWidth={30} />}
+          showIcon={showIcon}
+          setShowIcon={setShowIcon}
+        />
         <Button
           isActive={isActive}
           onClick={minimizeWindow}
           color="yellow"
           disabled={fullScreen}
+          Icon={<IoIosRemove color="	#996500" size={14} strokeWidth={30} />}
+          showIcon={showIcon}
+          setShowIcon={setShowIcon}
         />
         <Button
           onClick={enterFullScreen}
           isActive={isActive}
           disabled={data.disableFullscreen}
           color="green"
+          Icon={
+            <div
+              className={clsx(
+                "flex rotate-45",
+                fullScreen ? "flex-col-reverse" : "flex-col"
+              )}
+            >
+              <IoCaretUp
+                size={7}
+                color="#006B1B"
+                className={clsx(fullScreen ? "-mt-[2px]" : "-mb-[2px]")}
+              />
+              <IoCaretDown size={7} color="#006B1B" />
+            </div>
+          }
+          showIcon={showIcon}
+          setShowIcon={setShowIcon}
         />
       </div>
       {data.id === "safari" ? (
@@ -274,7 +309,9 @@ const WindowMenu = ({
         <div
           className={clsx(
             "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-[13px] transition-colors ease-in-out",
-            isActive ? "text-[#3D3D3D]" : "text-[rgba(60,60,67,0.6)]"
+            isActive
+              ? "text-[#3D3D3D] dark:text-[rgba(235,235,245,0.6)]"
+              : "text-[rgba(60,60,67,0.6)] dark:text-[rgba(235,235,245,0.3)]"
           )}
         >
           {data.name}
@@ -289,30 +326,40 @@ const Button = ({
   isActive,
   onClick,
   disabled,
+  Icon,
+  showIcon,
+  setShowIcon,
 }: {
   color: "red" | "yellow" | "green";
   isActive: boolean;
   onClick: React.MouseEventHandler<HTMLDivElement>;
   disabled?: boolean;
+  Icon: ReactNode;
+  showIcon: boolean;
+  setShowIcon: Dispatch<SetStateAction<boolean>>;
 }) => {
   return (
     <div
+      onMouseEnter={() => setShowIcon(true)}
+      onMouseLeave={() => setShowIcon(false)}
       onClick={(e) => {
         if (disabled) return;
         onClick(e);
       }}
       onDoubleClick={(e) => e.stopPropagation()}
       className={clsx(
-        "h-[12px] w-[12px] rounded-full border-solid border-[0.5px] transition-colors ease-in-out",
+        "h-[14px] w-[14px] rounded-full border-solid border-[0.5px] transition-colors ease-in-out flex items-center justify-center",
         !isActive || disabled
-          ? "bg-inactive-btn border-[rgba(0,0,0,0.12)]"
+          ? "bg-inactive-btn dark:bg-inactive-btn-dark border-[rgba(0,0,0,0.12)]"
           : color === "red"
           ? "bg-[#FF6157] border-[#E24640]"
           : color === "yellow"
           ? "bg-[#FFC12F] border-[#DFA023]"
           : "bg-[#2ACB42] border-[#1BAC2C]"
       )}
-    ></div>
+    >
+      {showIcon && !disabled && isActive && <div>{Icon}</div>}
+    </div>
   );
 };
 
@@ -333,10 +380,12 @@ const Window = ({
   data,
   dragConstraints,
   dockIconRef,
+  Content,
 }: {
   data: ItemType;
   dragConstraints: React.RefObject<HTMLDivElement | null>;
   dockIconRef: React.RefObject<HTMLDivElement | null>;
+  Content: React.ReactNode;
 }) => {
   const minWidth = 400;
   const maxWidth = window.innerWidth;
@@ -472,6 +521,8 @@ const Window = ({
   }, [fullScreen, addFullScreenWindow, removeFullScreenWindow, x, y]);
 
   const onAnimationComplete = (def: string) => {
+    console.log("done animation", def);
+
     switch (def) {
       case "enterFullScreen":
         setFullScreen(true);
@@ -490,7 +541,15 @@ const Window = ({
         break;
 
       case "enterMinimized":
+        setChanging(false);
+
         setMinimized(true);
+        break;
+
+      case "exitMinimized":
+        setChanging(false);
+
+        setCurrentAnimation("idle");
         break;
 
       default:
@@ -507,6 +566,14 @@ const Window = ({
       case "exitFullScreen":
         setChanging(true);
         setEnableConstraints(true);
+        break;
+
+      case "enterMinimized":
+        setChanging(true);
+        break;
+
+      case "exitMinimized":
+        setChanging(true);
         break;
 
       default:
@@ -532,14 +599,14 @@ const Window = ({
   useEffect(() => {
     const tempRef = dockIconRef.current;
     const dockIconClick = () => {
-      if (!fullScreen) minimizeWindow();
+      if (!fullScreen && !changing) minimizeWindow();
     };
     tempRef?.addEventListener("click", dockIconClick);
 
     return () => {
       tempRef?.removeEventListener("click", dockIconClick);
     };
-  }, [dockIconRef, minimizeWindow, fullScreen]);
+  }, [dockIconRef, minimizeWindow, fullScreen, changing]);
 
   useEffect(() => {
     dataRef.current = data;
@@ -574,52 +641,55 @@ const Window = ({
     }
   }, [fullScreen, dragConstraints, height, width]);
 
+  const variants = useMemo(
+    () => ({
+      enter: { opacity: 1, scale: 1 },
+      enterFullScreen: {
+        x: 0,
+        y: 0,
+        opacity: 1,
+        scale: 1,
+        width: dragConstraints.current?.getBoundingClientRect().width,
+        height: dragConstraints.current?.getBoundingClientRect().height,
+      },
+      exitFullScreen: {
+        x: position.x,
+        y: position.y,
+        opacity: 1,
+        scale: 1,
+        width: size.width,
+        height: size.height,
+      },
+      exit: { opacity: 0, scale: 0.5 },
+      enterMinimized: {
+        opacity: 0.3,
+        scale: 0.1,
+        x:
+          (dockIconRef.current?.getBoundingClientRect().x || 0) +
+          (dockIconRef.current?.getBoundingClientRect().width || 0) / 2 -
+          width.get() / 2,
+        y:
+          (dockIconRef.current?.getBoundingClientRect().y || 0) +
+          (dockIconRef.current?.getBoundingClientRect().height || 0) / 2 -
+          width.get() / 2,
+      },
+      exitMinimized: {
+        opacity: 1,
+        scale: 1,
+        x: position.x,
+        y: position.y,
+      },
+      idle: {
+        opacity: 1,
+        scale: 1,
+      },
+    }),
+    [dockIconRef, dragConstraints, position, size, width]
+  );
+
   return (
     <motion.div
-      variants={{
-        enter: {
-          opacity: 1,
-          scale: 1,
-        },
-        enterFullScreen: {
-          x: 0,
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          width: dragConstraints.current?.getBoundingClientRect().width,
-          height: dragConstraints.current?.getBoundingClientRect().height,
-        },
-        exitFullScreen: {
-          x: position.x,
-          y: position.y,
-          opacity: 1,
-          scale: 1,
-          width: size.width,
-          height: size.height,
-        },
-        exit: {
-          opacity: 0,
-          scale: 0.5,
-        },
-        enterMinimized: {
-          opacity: 0,
-          scale: 0.1,
-          x:
-            (dockIconRef.current?.getBoundingClientRect().x || 0) +
-            (dockIconRef.current?.getBoundingClientRect().width || 0) / 2 -
-            width.get() / 2,
-          y:
-            (dockIconRef.current?.getBoundingClientRect().y || 0) +
-            (dockIconRef.current?.getBoundingClientRect().height || 0) / 2 -
-            width.get() / 2,
-        },
-        exitMinimized: {
-          opacity: 1,
-          scale: 1,
-          x: position.x,
-          y: position.y,
-        },
-      }}
+      variants={variants}
       onMouseDown={(e) => {
         e.stopPropagation();
         setAsActive();
@@ -663,7 +733,7 @@ const Window = ({
         className={clsx(
           !fullScreen && "rounded-[10px]",
           !fullScreen && isActive ? "active" : "inactive",
-          "grid grid-rows-[auto_1fr] bg-[#ffffffbe] overflow-hidden border-solid border-[#0000001e] backdrop-blur-[40px] transition-[filter] window"
+          "grid grid-rows-[auto_1fr] bg-[#ffffffbe] dark:bg-[#282828] overflow-hidden border-solid border-[#0000001e] backdrop-blur-[40px] transition-[filter] window"
         )}
       >
         <WindowMenu
@@ -699,7 +769,7 @@ const Window = ({
             )}
           </div>
         ) : (
-          <div className="h-full w-full">Test</div>
+          <div className="h-full w-full">{Content}</div>
         )}
       </motion.div>
       {!fullScreen &&

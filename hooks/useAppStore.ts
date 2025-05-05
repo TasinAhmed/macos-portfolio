@@ -7,6 +7,10 @@ export type WindowType = {
 };
 
 interface AppStoreType {
+  brightness: number;
+  setBrightness: (val: number) => void;
+  sound: number;
+  setSound: (val: number) => void;
   windows: Map<string, ItemType>;
   activeWindow: string | null;
   fullScreenWindows: Set<string>;
@@ -20,6 +24,10 @@ interface AppStoreType {
 }
 
 export const useAppStore = create<AppStoreType>((set) => ({
+  brightness: 100,
+  setBrightness: (val) => set(() => ({ brightness: val })),
+  sound: 50,
+  setSound: (val) => set(() => ({ sound: val })),
   transitionDuration: 0.15,
   windows: new Map(),
   activeWindow: null,

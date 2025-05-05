@@ -10,6 +10,7 @@ import { useAppStore } from "../hooks/useAppStore";
 import clsx from "clsx";
 import Image from "next/image";
 import { apps, ItemType } from "@/configs/apps";
+import { Tooltip } from "radix-ui";
 
 const AppIcon = ({
   mouseX,
@@ -22,7 +23,8 @@ const AppIcon = ({
   active: boolean;
   iconRef: React.RefObject<HTMLDivElement | null>;
 }) => {
-  const { windows, addWindow, setActiveWindow } = useAppStore((state) => state);
+  const { windows, addWindow, setActiveWindow, transitionDuration } =
+    useAppStore((state) => state);
 
   const openWindow = (item: ItemType) => {
     if (windows.has(item.id)) {
@@ -41,7 +43,7 @@ const AppIcon = ({
     return val - bounds.x - bounds.width / 2;
   });
 
-  const widthSync = useTransform(distance, [-100, 0, 100], [64, 100, 64]);
+  const widthSync = useTransform(distance, [-100, 0, 100], [64, 80, 64]);
   const width = useSpring(widthSync, {
     damping: 15,
     mass: 0.1,
@@ -49,37 +51,45 @@ const AppIcon = ({
   });
 
   return (
-    <motion.div
-      ref={iconRef}
-      style={{ width }}
-      className="aspect-square flex items-center justify-center pointer-events-auto relative"
-      onClick={() => {
-        openWindow(data);
-      }}
-    >
-      <Image
-        src={"/Dock/" + data.src}
-        alt="Dock icon"
-        width={0}
-        height={0}
-        style={{
-          height: data.iconSize ? `${data.iconSize}%` : "100%",
-          width: "auto",
-        }}
-        quality={100}
-        unoptimized={true}
-      />
-      <div
-        className={clsx(
-          "h-[4px] w-[4px] rounded-full absolute top-[102%] transition-opacity ease-in-out",
-          active ? "opacity-100" : "opacity-0"
-        )}
-        style={{
-          background: "#000",
-          backgroundBlendMode: "normal, overlay",
-        }}
-      ></div>
-    </motion.div>
+    <Tooltip.Provider delayDuration={transitionDuration * 1000}>
+      <Tooltip.Root>
+        <Tooltip.Trigger>
+          <motion.div
+            ref={iconRef}
+            style={{ width }}
+            className="aspect-square flex items-center justify-center pointer-events-auto relative"
+            onClick={() => {
+              openWindow(data);
+            }}
+          >
+            <Image
+              src={"/Dock/" + data.src}
+              alt="Dock icon"
+              width={0}
+              height={0}
+              style={{
+                height: data.iconSize ? `${data.iconSize}%` : "100%",
+                width: "auto",
+              }}
+              quality={100}
+              unoptimized={true}
+            />
+            <div
+              className={clsx(
+                "h-[4px] w-[4px] rounded-full absolute top-[102%] transition-opacity ease-in-out bg-black dark:bg-white",
+                active ? "opacity-100" : "opacity-0"
+              )}
+              style={{
+                backgroundBlendMode: "normal, overlay",
+              }}
+            ></div>
+          </motion.div>
+        </Tooltip.Trigger>
+        <Tooltip.Content className="bg-[rgba(0,0,0,0.3)] rounded-[10px] py-[4px] px-[8px] text-[white] text-[13px]">
+          {data.name}
+        </Tooltip.Content>
+      </Tooltip.Root>
+    </Tooltip.Provider>
   );
 };
 
@@ -148,11 +158,11 @@ const Dock = ({
         mouseX.set(Infinity);
       }}
       className={clsx(
-        "z-2 absolute bottom-[4px] gap-[3px] left-1/2 -translate-x-1/2 h-[80px] pb-[8px] px-[5px] rounded-[24px] bg-[rgba(255,255,255,0.2)] border-[0.5px] border-solid border-[rgba(255,255,255,0.2)] backdrop-blur-[25px] flex items-end"
+        "z-2 absolute bottom-[4px] gap-[3px] left-1/2 -translate-x-1/2 h-[80px] pb-[8px] px-[5px] rounded-[24px] bg-[rgba(255,255,255,0.2)] dark:bg-[rgba(0,0,0,0.2)] border-[0.5px] border-solid border-[rgba(255,255,255,0.2)] backdrop-blur-[25px] flex items-end"
       )}
       transition={{ duration: transitionDuration }}
     >
-      {items.slice(0, items.length - 2).map((item) => (
+      {items.slice(0, items.length - 1).map((item) => (
         <AppIcon
           iconRef={
             refs.current.get(item.id) ||
@@ -165,8 +175,8 @@ const Dock = ({
           data={item}
         />
       ))}
-      <div className="w-[1px] h-[50px] ml-[10px] mr-[4px] mb-[7px] bg-[rgba(0,0,0,0.3)]"></div>
-      {items.slice(items.length - 2).map((item) => (
+      <div className="w-[1px] h-[50px] ml-[8px] mr-[8px] mb-[7px] bg-[rgba(0,0,0,0.3)] dark:bg-[rgba(255,255,255,0.3)]"></div>
+      {items.slice(items.length - 1).map((item) => (
         <AppIcon
           iconRef={
             refs.current.get(item.id) ||

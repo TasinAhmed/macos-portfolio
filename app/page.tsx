@@ -7,6 +7,9 @@ import { motion } from "framer-motion";
 import { useAppStore } from "@/hooks/useAppStore";
 import Image from "next/image";
 import ControlCenter from "@/components/ControlCenter";
+import { useTheme } from "next-themes";
+import clsx from "clsx";
+import InitialLoader from "@/components/InitialLoader";
 
 const App = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
@@ -14,18 +17,36 @@ const App = () => {
   const refs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(
     new Map()
   );
+  const { theme } = useTheme();
+
+  const imgProps = {
+    fill: true,
+    quality: 100,
+    unoptimized: true,
+  };
 
   return (
     <div className="h-screen w-screen grid grid-rows-[auto_1fr] overflow-hidden">
+      <InitialLoader />
+      <Image
+        src="/bg-dark.jpg"
+        className={clsx(
+          theme === "dark" ? "opacity-100" : "opacity-0",
+          "desktop-img"
+        )}
+        alt={"Macos bg"}
+        {...imgProps}
+      />
       <Image
         src="/bg-light.jpg"
-        fill
-        alt="Macos bg"
-        className="object-cover object-center pointer-events-none"
-        quality={100}
-        unoptimized={true}
+        alt={"Macos bg"}
+        className={clsx(
+          theme === "light" ? "opacity-100" : "opacity-0",
+          "desktop-img"
+        )}
+        {...imgProps}
       />
-      <MenuBar onClick={() => setActiveWindow(null)} />
+      <MenuBar />
       <motion.div
         className="relative"
         ref={constraintsRef}
@@ -33,13 +54,13 @@ const App = () => {
           setActiveWindow(null);
         }}
       >
-        <ControlCenter />
         {[...windows.values()].map((w) => (
           <Window
             key={w.id}
             dragConstraints={constraintsRef}
             data={w}
             dockIconRef={refs.current.get(w.id)!}
+            Content={w.content}
           />
         ))}
       </motion.div>
