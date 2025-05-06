@@ -30,7 +30,7 @@ const InitialLoader = () => {
         "absolute top-0 left-0 h-screen w-screen bg-black flex flex-col items-center justify-center z-50",
         !showLoading ? "opacity-0 pointer-events-none" : "opacity-100"
       )}
-      style={{ transition: "opacity 0.7s ease" }}
+      style={{ transition: "opacity 0.3s ease" }}
     >
       <FaApple color="white" size={80} />
       <Progress.Root

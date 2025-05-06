@@ -10,6 +10,7 @@ import { useTheme } from "next-themes";
 import clsx from "clsx";
 import InitialLoader from "@/components/InitialLoader";
 import Lockscreen from "@/components/Lockscreen";
+import WidgetGrid from "@/components/Widgets/WidgetGrid";
 
 const App = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
@@ -71,6 +72,7 @@ const App = () => {
         {...imgProps}
       />
       <MenuBar showMenu={!showLockscreen} />
+      <WidgetGrid />
       <motion.div
         className="relative"
         ref={constraintsRef}

@@ -10,6 +10,7 @@ import SwitchIcon from "@/public/switch.svg";
 import { Popover } from "radix-ui";
 import ControlCenter from "./ControlCenter";
 import { motion } from "motion/react";
+import DynamicIsland from "./DynamicIsland";
 
 const Button = ({
   children,

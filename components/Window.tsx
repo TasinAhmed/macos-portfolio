@@ -399,6 +399,7 @@ const Window = ({
     addFullScreenWindow,
     removeFullScreenWindow,
     transitionDuration,
+    showLockscreen,
   } = useAppStore((state) => state);
   const windows = useAppStore((state) => state.windows);
   const [changing, setChanging] = useState(false);
@@ -726,7 +727,7 @@ const Window = ({
         setChanging(false);
         setPosition({ x: x.get(), y: y.get() });
       }}
-      className={clsx(minimized && "hidden", "absolute")}
+      className={clsx((minimized || showLockscreen) && "hidden", "absolute")}
     >
       <motion.div
         style={{ width, height }}

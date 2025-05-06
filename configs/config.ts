@@ -1,0 +1,6 @@
+export const config = {
+  WEATHER_API_KEY: process.env.NEXT_PUBLIC_WEATHER_API_KEY,
+  ALPHA_API_KEY: process.env.NEXT_PUBLIC_ALPHA_API_KEY,
+  LATTITUDE: process.env.NEXT_PUBLIC_LATTITUDE,
+  LONGITUDE: process.env.NEXT_PUBLIC_LONGITUDE,
+};

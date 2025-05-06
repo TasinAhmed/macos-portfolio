@@ -2,11 +2,21 @@ import { useAppStore } from "@/hooks/useAppStore";
 import { useMacOSDateTime } from "@/hooks/useMacOSDateTime";
 import clsx from "clsx";
 import { Avatar } from "radix-ui";
-import React from "react";
+import React, { useMemo, useRef } from "react";
 
 const Lockscreen = () => {
   const { weekday, month, day, time24 } = useMacOSDateTime();
   const { showLockscreen, setShowLockscreen } = useAppStore((state) => state);
+  const startupSound = useMemo(() => new Audio("/startup.wav"), []);
+  const playedRef = useRef(false);
+
+  const onClick = () => {
+    setShowLockscreen(false);
+    if (!playedRef.current) {
+      startupSound.play();
+      playedRef.current = true;
+    }
+  };
 
   return (
     <div
@@ -14,8 +24,8 @@ const Lockscreen = () => {
         "z-25 absolute top-0 left-0 w-full h-full flex flex-col justify-between items-center py-[150px]",
         !showLockscreen ? "opacity-0 pointer-events-none" : "opacity-100"
       )}
-      style={{ transition: "opacity 0.7s ease" }}
-      onClick={() => setShowLockscreen(false)}
+      style={{ transition: "opacity 0.3s ease" }}
+      onClick={onClick}
     >
       <div className="grid items-center justify-items-center text-[rgba(255,255,255,0.7)]">
         <div className="text-[24px]">
