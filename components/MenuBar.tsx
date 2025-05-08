@@ -10,7 +10,6 @@ import SwitchIcon from "@/public/switch.svg";
 import { Popover } from "radix-ui";
 import ControlCenter from "./ControlCenter";
 import { motion } from "motion/react";
-import DynamicIsland from "./DynamicIsland";
 
 const Button = ({
   children,
@@ -74,7 +73,7 @@ const MenuBar = ({
       <div
         className={clsx(
           fullScreenWindows.size > 0
-            ? "bg-[rgba(255,255,255,0.8)] dark:bg-black"
+            ? "bg-[rgba(255,255,255,0.8)] dark:bg-[rgba(14,14,14,0.8)]"
             : "bg-[rgba(255,255,255,0.4)] dark:bg-[rgba(79,79,79,0.2)]",
           "absolute left-0 top-0 h-full w-full backdrop-blur-[75px] dark:backdrop-blur-[32.5px]"
         )}

@@ -31,7 +31,7 @@ const getAppleStyleIconLabel = (code: number, isNight: boolean): string => {
 
   if (code === 800) return isNight ? "clear-night" : "clear";
   if (code === 801 || code === 802)
-    return isNight ? "Partly cloudy (night)" : "partly-cloudy";
+    return isNight ? "partly-cloudy-night" : "partly-cloudy";
   if (code === 803 || code === 804) return "cloudy";
 
   return "clear";
@@ -72,7 +72,7 @@ const Weather = () => {
 
   return (
     <div
-      className="col-span-2 widget p-[16px]"
+      className="col-span-2 widget p-[16px] row-start-2"
       style={{
         background: isNightTime(
           data?.current.dt,
@@ -114,7 +114,7 @@ const Weather = () => {
           <div className="flex justify-between">
             {data.hourly.slice(0, 6).map((d: HourlyWeather, index: number) => (
               <div key={index} className="grid justify-items-center gap-[6px]">
-                <div className="text-[15px] text-[rgba(255,255,255,0.8)]">
+                <div className="text-[13px] text-[rgba(255,255,255,0.8)]">
                   {formatHour(d.dt)}
                 </div>
                 <Image
@@ -126,7 +126,7 @@ const Weather = () => {
                   )}.png`}
                   alt="Weather icon"
                 />
-                <div className="text-[16px] font-bold">
+                <div className="text-[14px] font-bold">
                   {Math.ceil(d.temp)}&deg;
                 </div>
               </div>

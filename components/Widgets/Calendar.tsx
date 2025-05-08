@@ -6,11 +6,11 @@ const Calendar = () => {
 
   return (
     <div className="grid items-center justify-items-center content-center bg-white widget aspect-square">
-      <div className="text-[20px] font-bold">
+      <div className="text-[16px] font-bold">
         <span className="text-[#f14148] mr-[8px]">{weekday}</span>
         <span className="text-[#828282]">{month}</span>
       </div>
-      <div className="text-[#272727] text-[100px] font-bold leading-[100px]">
+      <div className="text-[#272727] text-[90px] font-bold leading-[90px]">
         {day}
       </div>
     </div>

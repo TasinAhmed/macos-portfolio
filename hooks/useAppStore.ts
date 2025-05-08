@@ -30,7 +30,7 @@ export const useAppStore = create<AppStoreType>((set) => ({
   setShowLockscreen: (val) => set(() => ({ showLockscreen: val })),
   brightness: 100,
   setBrightness: (val) => set(() => ({ brightness: val })),
-  sound: 50,
+  sound: 30,
   setSound: (val) => set(() => ({ sound: val })),
   transitionDuration: 0.15,
   windows: new Map(),

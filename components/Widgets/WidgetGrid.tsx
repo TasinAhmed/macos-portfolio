@@ -5,6 +5,8 @@ import { useAppStore } from "@/hooks/useAppStore";
 import clsx from "clsx";
 import Weather from "./Weather";
 import Stocks from "./Stocks";
+import Devices from "./Devices";
+import Music from "./Music";
 
 const WidgetGrid = () => {
   const { showLockscreen, transitionDuration } = useAppStore((state) => state);
@@ -12,7 +14,7 @@ const WidgetGrid = () => {
   return (
     <div
       className={clsx(
-        "grid grid-cols-[170px_170px] w-[360px] gap-[20px] justify-self-start absolute top-[54px] left-[20px]",
+        "grid grid-cols-[repeat(4,140px)] w-[360px] gap-[14px] justify-self-start absolute top-[20px] left-[20px]",
         showLockscreen ? "opacity-0" : "opacity-100"
       )}
       style={{ transition: `opacity ${transitionDuration}s ease` }}
@@ -21,6 +23,8 @@ const WidgetGrid = () => {
       <Time />
       <Weather />
       <Stocks />
+      <Devices />
+      <Music />
     </div>
   );
 };

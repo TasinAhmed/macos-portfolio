@@ -11,6 +11,7 @@ import clsx from "clsx";
 import InitialLoader from "@/components/InitialLoader";
 import Lockscreen from "@/components/Lockscreen";
 import WidgetGrid from "@/components/Widgets/WidgetGrid";
+import DynamicIsland from "@/components/DynamicIsland";
 
 const App = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
@@ -72,7 +73,6 @@ const App = () => {
         {...imgProps}
       />
       <MenuBar showMenu={!showLockscreen} />
-      <WidgetGrid />
       <motion.div
         className="relative"
         ref={constraintsRef}
@@ -80,6 +80,7 @@ const App = () => {
           setActiveWindow(null);
         }}
       >
+        <WidgetGrid />
         {[...windows.values()].map((w) => (
           <Window
             key={w.id}
@@ -90,6 +91,7 @@ const App = () => {
           />
         ))}
       </motion.div>
+      <DynamicIsland />
       <Dock
         refs={refs}
         showDock={

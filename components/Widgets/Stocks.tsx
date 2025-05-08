@@ -7,7 +7,6 @@ import {
   Line,
   XAxis,
   YAxis,
-  Tooltip,
   ResponsiveContainer,
   ReferenceLine,
   Area,
@@ -73,19 +72,19 @@ const StockGraph = ({
         className
       )}
     >
-      <div className="grid w-[125px]">
+      <div className="grid w-[95px]">
         <div className="flex items-center gap-[4px]">
           {isStockUp ? (
             <BiSolidUpArrow color={lineColor} />
           ) : (
             <BiSolidDownArrow color={lineColor} />
           )}{" "}
-          <div className="font-bold">{symbol}</div>
+          <div className="font-bold text">{symbol}</div>
         </div>
-        <div className="text-[14px] text-[#A4A3A9]">{name}</div>
+        <div className="text-[12px] text-[#A4A3A9]">{name}</div>
       </div>
       <div className="flex flex-1 items-center gap-[10px] font-medium">
-        <ResponsiveContainer width="100%" height={40}>
+        <ResponsiveContainer width="100%" height={35}>
           <ComposedChart data={data}>
             {/* Gradient definition for stock movement */}
             <defs>
@@ -103,19 +102,6 @@ const StockGraph = ({
 
             <XAxis dataKey="time" hide />
             <YAxis domain={["dataMin", "dataMax"]} hide />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#1e1e1e",
-                border: "none",
-              }}
-              labelStyle={{
-                color: lineColor,
-              }}
-              cursor={{
-                stroke: lineColor,
-                strokeDasharray: "3 3",
-              }}
-            />
             <ReferenceLine
               y={yesterdayClose}
               stroke={lineColor}
@@ -162,7 +148,7 @@ const StockGraph = ({
 
 const Stocks = () => {
   return (
-    <div className="widget bg-[#121212] p-[16px] col-span-2">
+    <div className="widget bg-[#121212] p-[16px] col-span-2 row-start-3">
       <StockGraph
         symbol="AAPL"
         name="Apple Inc"

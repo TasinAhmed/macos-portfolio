@@ -2,7 +2,7 @@
 import Image from "next/image";
 import React, { useRef } from "react";
 import { IconType } from "react-icons";
-import { FaBluetoothB, FaVolumeUp, FaWifi } from "react-icons/fa";
+import { FaBluetoothB, FaVolumeMute, FaVolumeUp, FaWifi } from "react-icons/fa";
 import {
   MdDarkMode,
   MdLightMode,
@@ -21,10 +21,12 @@ const ControlSlider = ({
   value,
   onChange,
   Icon,
+  AltIcon,
 }: {
   value: number;
   onChange: (value: number) => void;
   Icon: IconType;
+  AltIcon?: IconType;
 }) => {
   const height = 28;
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -68,14 +70,14 @@ const ControlSlider = ({
         onClick={() => onChange(0)}
       >
         <div
-          className="bg-white absolute top-1/2 -translate-y-1/2 w-full rounded-l-full flex items-center pl-[6px]"
+          className="bg-white absolute top-1/2 -translate-y-1/2 w-full rounded-l-full flex items-center pl-[6px] text-[rgba(0,0,0,0.5)]"
           style={{
             height: `${height - 4}px`,
             width: "calc(100%-2px)",
             left: "2px",
           }}
         >
-          <Icon color="rgba(0,0,0,0.5)" />
+          {AltIcon ? value === 0 ? <AltIcon /> : <Icon /> : <Icon />}
         </div>
       </div>
       <div
@@ -233,9 +235,9 @@ const ControlCenter = () => {
           value={sound}
           onChange={(value) => setSound(value)}
           Icon={FaVolumeUp}
+          AltIcon={FaVolumeMute}
         />
       </div>
-      <div className="control-tile h-[60px]"></div>
     </div>
   );
 };

@@ -2,13 +2,19 @@ import { useAppStore } from "@/hooks/useAppStore";
 import { useMacOSDateTime } from "@/hooks/useMacOSDateTime";
 import clsx from "clsx";
 import { Avatar } from "radix-ui";
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 
 const Lockscreen = () => {
   const { weekday, month, day, time24 } = useMacOSDateTime();
-  const { showLockscreen, setShowLockscreen } = useAppStore((state) => state);
+  const { showLockscreen, setShowLockscreen, sound } = useAppStore(
+    (state) => state
+  );
   const startupSound = useMemo(() => new Audio("/startup.wav"), []);
   const playedRef = useRef(false);
+
+  useEffect(() => {
+    startupSound.volume = sound / 100;
+  }, [sound, startupSound]);
 
   const onClick = () => {
     setShowLockscreen(false);

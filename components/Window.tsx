@@ -390,7 +390,7 @@ const Window = ({
   const minWidth = 400;
   const maxWidth = window.innerWidth;
   const minHeight = 200;
-  const maxHeight = window.innerHeight - 30;
+  const maxHeight = window.innerHeight - 34;
   const dragControls = useDragControls();
   const {
     removeWindow,
