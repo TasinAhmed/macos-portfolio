@@ -6,11 +6,12 @@ import {
   useSpring,
 } from "motion/react";
 import React, { RefObject, useEffect, useState } from "react";
-import { useAppStore } from "../hooks/useAppStore";
 import clsx from "clsx";
 import Image from "next/image";
 import { apps, ItemType } from "@/configs/apps";
 import { Tooltip } from "radix-ui";
+import { config } from "@/configs/config";
+import { useWindowsStore } from "@/hooks/useWindowsStore";
 
 const AppIcon = ({
   mouseX,
@@ -23,8 +24,9 @@ const AppIcon = ({
   active: boolean;
   iconRef: React.RefObject<HTMLDivElement | null>;
 }) => {
-  const { windows, addWindow, setActiveWindow, transitionDuration } =
-    useAppStore((state) => state);
+  const { windows, addWindow, setActiveWindow } = useWindowsStore(
+    (state) => state
+  );
 
   const openWindow = (item: ItemType) => {
     if (windows.has(item.id)) {
@@ -51,7 +53,7 @@ const AppIcon = ({
   });
 
   return (
-    <Tooltip.Provider delayDuration={transitionDuration * 1000}>
+    <Tooltip.Provider delayDuration={config.TRANSITION_DURATION * 1000}>
       <Tooltip.Root>
         <Tooltip.Trigger>
           <motion.div
@@ -102,7 +104,7 @@ const Dock = ({
 }) => {
   const items = [...apps.values()];
   const mouseX = useMotionValue(Infinity);
-  const { windows, transitionDuration } = useAppStore((state) => state);
+  const { windows } = useWindowsStore((state) => state);
   const [currentAnimation, setCurrentAnimation] = useState<string | undefined>(
     undefined
   );
@@ -133,7 +135,7 @@ const Dock = ({
       className={clsx(
         "z-2 absolute bottom-[4px] gap-[3px] left-1/2 -translate-x-1/2 h-[80px] pb-[8px] px-[5px] rounded-[24px] bg-[rgba(255,255,255,0.2)] dark:bg-[rgba(0,0,0,0.2)] border-[0.5px] border-solid border-[rgba(255,255,255,0.2)] backdrop-blur-[25px] flex items-end"
       )}
-      transition={{ duration: transitionDuration }}
+      transition={{ duration: config.TRANSITION_DURATION }}
     >
       {items.slice(0, items.length - 1).map((item) => (
         <AppIcon

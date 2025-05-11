@@ -12,11 +12,14 @@ import InitialLoader from "@/components/InitialLoader";
 import Lockscreen from "@/components/Lockscreen";
 import WidgetGrid from "@/components/Widgets/WidgetGrid";
 import DynamicIsland from "@/components/DynamicIsland";
+import { useWindowsStore } from "@/hooks/useWindowsStore";
 
 const App = () => {
   const constraintsRef = useRef<HTMLDivElement | null>(null);
-  const { windows, setActiveWindow, showLockscreen, fullScreenWindows } =
-    useAppStore((state) => state);
+  const { showLockscreen, wallpaper } = useAppStore((state) => state);
+  const { windows, setActiveWindow, fullScreenWindows } = useWindowsStore(
+    (state) => state
+  );
   const refs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(
     new Map()
   );
@@ -44,33 +47,33 @@ const App = () => {
     }
   }, [fullScreenWindows]);
 
-  const imgProps = {
-    fill: true,
-    quality: 100,
-    unoptimized: true,
-  };
-
   return (
     <div className="h-screen w-screen grid grid-rows-[auto_1fr] overflow-hidden">
       <InitialLoader />
       <Lockscreen />
       <Image
-        src="/bg-dark.jpg"
+        src={`/wallpapers/${wallpaper}-dark.jpg`}
         className={clsx(
           theme === "dark" ? "opacity-100" : "opacity-0",
           "desktop-img"
         )}
         alt={"Macos bg"}
-        {...imgProps}
+        priority
+        fill
+        quality={100}
+        objectFit="cover"
       />
       <Image
-        src="/bg-light.jpg"
+        src={`/wallpapers/${wallpaper}-light.jpg`}
         alt={"Macos bg"}
         className={clsx(
           theme === "light" ? "opacity-100" : "opacity-0",
           "desktop-img"
         )}
-        {...imgProps}
+        priority
+        fill
+        quality={100}
+        objectFit="cover"
       />
       <MenuBar showMenu={!showLockscreen} />
       <motion.div
@@ -87,7 +90,6 @@ const App = () => {
             dragConstraints={constraintsRef}
             data={w}
             dockIconRef={refs.current.get(w.id)!}
-            Content={w.content}
           />
         ))}
       </motion.div>

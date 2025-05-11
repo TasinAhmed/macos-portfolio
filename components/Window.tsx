@@ -21,6 +21,8 @@ import RightIcon from "@/public/Safari/right.svg";
 import { ItemType } from "@/configs/apps";
 import { IoIosClose, IoIosRemove } from "react-icons/io";
 import { IoCaretDown, IoCaretUp } from "react-icons/io5";
+import { config } from "@/configs/config";
+import { useWindowsStore } from "@/hooks/useWindowsStore";
 
 const resizeDirections = {
   top: "top-0 left-4 right-4 h-2 cursor-n-resize -translate-y-1/2",
@@ -228,7 +230,7 @@ const WindowMenu = ({
               />
             </div>
           </div>
-          <div className="flex gap-[15px] items-center w-full max-w-[400px] ">
+          <div className="flex gap-[15px] items-center w-full max-w-[400px]">
             <img src="/Safari/shield.svg" alt="" />
             <div
               onPointerDown={(e) => e.stopPropagation()}
@@ -380,28 +382,25 @@ const Window = ({
   data,
   dragConstraints,
   dockIconRef,
-  Content,
 }: {
   data: ItemType;
   dragConstraints: React.RefObject<HTMLDivElement | null>;
   dockIconRef: React.RefObject<HTMLDivElement | null>;
-  Content: React.ReactNode;
 }) => {
-  const minWidth = 400;
+  const minWidth = data.minWidth || 400;
   const maxWidth = window.innerWidth;
-  const minHeight = 200;
+  const minHeight = data.minHeight || 200;
   const maxHeight = window.innerHeight - 34;
   const dragControls = useDragControls();
+  const { showLockscreen } = useAppStore((state) => state);
   const {
     removeWindow,
     activeWindow,
     setActiveWindow,
     addFullScreenWindow,
     removeFullScreenWindow,
-    transitionDuration,
-    showLockscreen,
-  } = useAppStore((state) => state);
-  const windows = useAppStore((state) => state.windows);
+    windows,
+  } = useWindowsStore((state) => state);
   const [changing, setChanging] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const dataRef = useRef(data);
@@ -413,8 +412,8 @@ const Window = ({
   const [searchUrl, setSearchUrl] = useState("home");
   const [fullScreen, setFullScreen] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const height = useMotionValue(200);
-  const width = useMotionValue(400);
+  const height = useMotionValue(minHeight);
+  const width = useMotionValue(minWidth);
   const x = useMotionValue(
     dragConstraints.current
       ? dragConstraints.current.getBoundingClientRect().width / 2 -
@@ -715,7 +714,7 @@ const Window = ({
       animate={currentAnimation}
       onAnimationStart={onAnimationStart}
       onAnimationComplete={onAnimationComplete}
-      transition={{ duration: transitionDuration }}
+      transition={{ duration: config.TRANSITION_DURATION }}
       drag={!fullScreen || !changing}
       dragControls={dragControls}
       dragConstraints={enableConstraints ? dragConstraints : undefined}
@@ -770,7 +769,9 @@ const Window = ({
             )}
           </div>
         ) : (
-          <div className="h-full w-full">{Content}</div>
+          <div className="h-full w-full">
+            {data.Content && <data.Content />}
+          </div>
         )}
       </motion.div>
       {!fullScreen &&

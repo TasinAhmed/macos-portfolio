@@ -5,6 +5,7 @@ import MusicSlider from "./MusicSlider";
 import { FaBackward, FaForward } from "react-icons/fa";
 import { FaPause } from "react-icons/fa6";
 import { IoPlay } from "react-icons/io5";
+import { IoIosMusicalNotes } from "react-icons/io";
 
 const DynamicIsland = () => {
   const [currentAnimation, setCurrentAnimation] = useState("initial");
@@ -87,8 +88,8 @@ const DynamicIsland = () => {
               />
               <motion.div
                 variants={{
-                  initial: { opacity: 0, scale: 0.8 },
-                  hover: { opacity: 100, scale: 1 },
+                  initial: { opacity: 0 },
+                  hover: { opacity: 100 },
                 }}
                 initial={"initial"}
                 animate={currentAnimation}
@@ -101,13 +102,17 @@ const DynamicIsland = () => {
                   {currentTrack?.artists.join(", ")}
                 </div>
               </motion.div>
-              <motion.div className="loader">
-                <span className="stroke"></span>
-                <span className="stroke"></span>
-                <span className="stroke"></span>
-                <span className="stroke"></span>
-                <span className="stroke"></span>
-              </motion.div>
+              {musicPlaying ? (
+                <motion.div className="loader">
+                  <span className="stroke"></span>
+                  <span className="stroke"></span>
+                  <span className="stroke"></span>
+                  <span className="stroke"></span>
+                  <span className="stroke"></span>
+                </motion.div>
+              ) : (
+                <IoIosMusicalNotes />
+              )}
             </motion.div>
             <motion.div
               variants={{
@@ -125,7 +130,8 @@ const DynamicIsland = () => {
                 </div>
                 <MusicSlider />
                 <div>
-                  {duration.min}:{duration.sec}
+                  {duration.min}:{duration.sec < 10 && 0}
+                  {duration.sec}
                 </div>
               </div>
               <div className="flex justify-center gap-[30px] items-center text-white">

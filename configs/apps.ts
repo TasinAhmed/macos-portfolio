@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import SystemPreferences from "@/components/SystemPreferences";
 
 export interface ItemType {
   id: string;
@@ -6,7 +6,9 @@ export interface ItemType {
   iconSize?: number;
   name: string;
   disableFullscreen?: boolean;
-  content?: ReactNode;
+  minWidth?: number;
+  minHeight?: number;
+  Content?: () => React.JSX.Element;
 }
 
 export const apps: Map<string, ItemType> = new Map([
@@ -17,5 +19,15 @@ export const apps: Map<string, ItemType> = new Map([
   ["safari", { id: "safari", src: "safari.svg", name: "Safari" }],
   ["terminal", { id: "terminal", src: "terminal.png", name: "Terminal" }],
   ["mail", { id: "mail", src: "mail.svg", name: "Mail" }],
-  ["settings", { id: "settings", src: "settings.svg", name: "Settings" }],
+  [
+    "settings",
+    {
+      id: "settings",
+      src: "settings.svg",
+      name: "System Settings",
+      Content: SystemPreferences,
+      minWidth: 600,
+      minHeight: 500,
+    },
+  ],
 ]);

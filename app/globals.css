@@ -132,8 +132,8 @@ body {
 
 .arc-left,
 .arc-right {
-  width: 16px;
-  height: 16px;
+  width: 8px;
+  height: 8px;
   overflow: hidden;
   position: relative;
 }
@@ -151,12 +151,12 @@ body {
 
 .arc-left::before {
   right: 0;
-  box-shadow: 8px -8px 0 0 black;
+  box-shadow: 4px -4px 0 0 black;
 }
 
 .arc-right::before {
   left: 0;
-  box-shadow: -8px -8px 0 0 black;
+  box-shadow: -4px -4px 0 0 black;
 }
 
 @keyframes pulse {
@@ -256,4 +256,17 @@ body {
 
 .stroke:nth-child(5) {
   animation-delay: 0s;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade {
+  animation: fade 0.3s ease-in-out;
 }

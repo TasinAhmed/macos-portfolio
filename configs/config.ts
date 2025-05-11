@@ -3,4 +3,5 @@ export const config = {
   ALPHA_API_KEY: process.env.NEXT_PUBLIC_ALPHA_API_KEY,
   LATTITUDE: process.env.NEXT_PUBLIC_LATTITUDE,
   LONGITUDE: process.env.NEXT_PUBLIC_LONGITUDE,
+  TRANSITION_DURATION: 0.15,
 };

@@ -10,6 +10,8 @@ import SwitchIcon from "@/public/switch.svg";
 import { Popover } from "radix-ui";
 import ControlCenter from "./ControlCenter";
 import { motion } from "motion/react";
+import { config } from "@/configs/config";
+import { useWindowsStore } from "@/hooks/useWindowsStore";
 
 const Button = ({
   children,
@@ -38,12 +40,8 @@ const MenuBar = ({
   onClick?: React.MouseEventHandler<HTMLDivElement>;
 }) => {
   const { date, time, ampm } = useMacOSDateTime();
-  const {
-    activeWindow,
-    fullScreenWindows,
-    transitionDuration,
-    showLockscreen,
-  } = useAppStore((state) => state);
+  const { showLockscreen } = useAppStore((state) => state);
+  const { activeWindow, fullScreenWindows } = useWindowsStore((state) => state);
   const [controlOpen, setControlOpen] = useState(false);
   const [currentAnimation, setCurrentAnimation] = useState<string | undefined>(
     undefined
@@ -65,7 +63,7 @@ const MenuBar = ({
     <motion.div
       variants={{ enter: { top: 0 }, exit: { top: -34 } }}
       animate={currentAnimation}
-      transition={{ duration: transitionDuration }}
+      transition={{ duration: config.TRANSITION_DURATION }}
       className="relative h-[34px] text-[14px] text-black dark:text-[rgba(255,255,255,0.9)]"
       onClick={onClick}
     >
